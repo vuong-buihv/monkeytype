@@ -5,12 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Monkeytype</title>
     <!-- <link rel="stylesheet" href="css/fa.css" /> -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/balloon.css" />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/media-queries.css" />
     <link rel="stylesheet" href="themes/serika_dark.css" id="currentTheme" />
     <link rel="stylesheet" href="" id="funBoxTheme" />
-    <link id="favicon" rel="shortcut icon" href="fav.png" />
-    <link rel="shortcut icon" href="fav.png" />
+    <link id="favicon" rel="shortcut icon" href="images/fav.png" />
+    <link rel="shortcut icon" href="images/favicon/fav.png" />
+    <link
+      href="images/favicon/apple-touch-icon-180x180.png"
+      rel="apple-touch-icon"
+      sizes="180x180"
+    />
+    <link
+      href="images/favicon/apple-touch-icon-152x152.png"
+      rel="apple-touch-icon"
+      sizes="152x152"
+    />
+    <link
+      href="images/favicon/apple-touch-icon-120x120.png"
+      rel="apple-touch-icon"
+      sizes="120x120"
+    />
+
+    <link
+      href="images/favicon/apple-touch-icon-76x76.png"
+      rel="apple-touch-icon"
+      sizes="76x76"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="images/favicon/apple-touch-icon-60x60.png"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+      integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w=="
+      crossorigin="anonymous"
+    />
     <meta name="name" content="Monkeytype" />
     <meta name="image" content="https://monkeytype.com/mtsocial.png" />
     <meta
@@ -34,15 +70,22 @@
     <meta name="twitter:title" content="Monkeytype" />
     <meta name="twitter:image" content="https://monkeytype.com/mtsocial.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script
-      data-ad-client="ca-pub-7261919841327810"
-      async
-      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"
-    ></script>
+    <script type="text/javascript">
+      window["nitroAds"] = window["nitroAds"] || {
+        createAd: function () {
+          window.nitroAds.queue.push(["createAd", arguments]);
+        },
+        queue: [],
+      };
+    </script>
+    <script async src="https://s.nitropay.com/ads-693.js"></script>
   </head>
-
+  <div class="customBackground"></div>
   <body>
     <div id="backgroundLoader" style="display: none"></div>
+    <div id="notificationCenter">
+      <div class="history"></div>
+    </div>
     <div
       class="nameChangeMessage"
       style="
@@ -55,7 +98,20 @@
     >
       Important information about your account. Please click this message.
     </div>
-    <div class="notification">Signed in</div>
+    <div
+      class="merchBanner hidden"
+      style="
+        background-color: var(--main-color);
+        padding: 0.5rem;
+        text-align: center;
+        color: var(--bg-color);
+      "
+    >
+      Check out our new merchandise over at
+      <a href="https://monkeytype.store" target="_blank">monkeytype.store</a>
+      . We've got some awesome designs for you.
+      <i class="fas closeButton fa-times"></i>
+    </div>
 
     <div id="simplePopupWrapper" class="hidden">
       <div id="simplePopup" popupId=""></div>
@@ -76,6 +132,10 @@
     </div>
     <div id="customTextPopupWrapper" class="hidden">
       <div id="customTextPopup" action="">
+        <div class="wordfilter button">
+          <i class="fas fa-filter"></i>
+          Words filter
+        </div>
         <textarea class="textarea" placeholder="Custom text"></textarea>
         <div class="inputs">
           <label class="check">
@@ -87,10 +147,17 @@
               generated.
             </span>
           </label>
-          <label class="wordcount">
-            Word count
-            <input type="number" value="1" min="1" max="10000" />
-          </label>
+          <div class="randomInputFields hidden">
+            <label class="wordcount">
+              Word count
+              <input type="number" value="" min="1" max="10000" />
+            </label>
+            <div style="color: var(--sub-color)">or</div>
+            <label class="time">
+              Time
+              <input type="number" value="" min="1" max="10000" />
+            </label>
+          </div>
           <label class="typographyCheck">
             <input type="checkbox" checked />
             <div class="customTextTypographyCheckbox"></div>
@@ -100,18 +167,82 @@
             </span>
           </label>
         </div>
+        <div class="button apply">ok</div>
+      </div>
+    </div>
+    <div id="wordFilterPopupWrapper" class="hidden">
+      <div id="wordFilterPopup">
+        <div class="group">
+          <div class="title">language</div>
+          <select class="languageInput" class=""></select>
+        </div>
+        <div class="group lengthgrid">
+          <div class="title">min length</div>
+          <div class="title">max length</div>
+          <input
+            class="wordLength wordMinInput"
+            autocomplete="off"
+            type="number"
+          />
+          <input
+            class="wordLength wordMaxInput"
+            autocomplete="off"
+            type="number"
+          />
+        </div>
+        <div class="group">
+          <div class="title">include</div>
+          <input class="wordIncludeInput" autocomplete="off" />
+        </div>
+        <div class="group">
+          <div class="title">exclude</div>
+          <input class="wordExcludeInput" autocomplete="off" />
+        </div>
+        <div class="tip">
+          Use the above filters to include and exclude words or characters
+          (separated by spaces)
+        </div>
+        <i
+          class="fas fa-fw fa-spin fa-circle-notch hidden loadingIndicator"
+        ></i>
         <div class="button">ok</div>
       </div>
     </div>
-    <div id="customMode2PopupWrapper" class="hidden">
-      <div id="customMode2Popup" mode="">
-        <div class="title">Test length</div>
+    <div id="customWordAmountPopupWrapper" class="hidden">
+      <div id="customWordAmountPopup">
+        <div class="title">Word amount</div>
         <input type="number" value="1" min="1" max="10000" />
         <div class="tip">
           You can start an infinite test by inputting 0. Then, to stop the test,
           use the Bail Out feature (esc > Bail Out)
         </div>
         <div class="button">ok</div>
+      </div>
+    </div>
+    <div id="customTestDurationPopupWrapper" class="hidden">
+      <div id="customTestDurationPopup">
+        <div class="title">Test duration</div>
+        <div class="preview"></div>
+        <input value="1" />
+        <div class="tip">
+          You can start an infinite test by inputting 0. Then, to stop the test,
+          use the Bail Out feature (esc > Bail Out)
+        </div>
+        <div class="button">ok</div>
+      </div>
+    </div>
+    <div id="quoteSearchPopupWrapper" class="hidden">
+      <div id="quoteSearchPopup" mode="">
+        <div class="title">Quote Search</div>
+        <input
+          id="searchBox"
+          class="searchBox"
+          type="text"
+          maxlength="200"
+          autocomplete="off"
+        />
+        <div id="extraResults">No search results</div>
+        <div id="quoteSearchResults" class="quoteSearchResults"></div>
       </div>
     </div>
     <div id="tagsWrapper" class="hidden">
@@ -143,24 +274,30 @@
               <table class="global">
                 <thead>
                   <tr>
-                    <td>#</td>
+                    <td width="1%">#</td>
                     <td>name</td>
-                    <td>wpm</td>
-                    <td>raw</td>
-                    <td>acc</td>
-                    <td>test</td>
-                    <td>date</td>
+                    <td class="alignRight" width="15%">
+                      wpm
+                      <br />
+                      <div class="sub">accuracy</div>
+                    </td>
+                    <td class="alignRight" width="15%">
+                      raw
+                      <br />
+                      <div class="sub">consistency</div>
+                    </td>
+                    <td class="alignRight" width="13%">test</td>
+                    <td class="alignRight" width="22%">date</td>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -169,11 +306,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -182,11 +318,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -195,11 +330,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -208,11 +342,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -221,11 +354,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -234,11 +366,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -247,11 +378,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -260,11 +390,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -273,11 +402,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -286,11 +414,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -299,11 +426,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -312,11 +438,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -325,11 +450,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -338,11 +462,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -351,11 +474,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -364,11 +486,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -377,11 +498,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -390,11 +510,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -403,11 +522,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -439,24 +557,30 @@
               <table class="daily">
                 <thead>
                   <tr>
-                    <td>#</td>
+                    <td width="1%">#</td>
                     <td>name</td>
-                    <td>wpm</td>
-                    <td>raw</td>
-                    <td>acc</td>
-                    <td>test</td>
-                    <td>date</td>
+                    <td class="alignRight" width="15%">
+                      wpm
+                      <br />
+                      <div class="sub">accuracy</div>
+                    </td>
+                    <td class="alignRight" width="15%">
+                      raw
+                      <br />
+                      <div class="sub">consistency</div>
+                    </td>
+                    <td class="alignRight" width="13%">test</td>
+                    <td class="alignRight" width="22%">date</td>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -465,11 +589,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -478,11 +601,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -491,11 +613,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -504,11 +625,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -517,11 +637,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -530,11 +649,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -543,11 +661,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -556,11 +673,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -569,11 +685,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -582,11 +697,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -595,11 +709,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -608,11 +721,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -621,11 +733,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -634,11 +745,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -647,11 +757,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -660,11 +769,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -673,11 +781,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -686,11 +793,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -699,11 +805,10 @@
                   <tr>
                     <td>-</td>
                     <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">-</td>
+                    <td class="alignRight">
                       -
                       <br />
                       -
@@ -748,6 +853,42 @@
         </div>
       </div>
     </div>
+    <div id="supportMeWrapper" class="hidden">
+      <div id="supportMe">
+        <div class="title">Support Monkeytype</div>
+        <div class="text">
+          Thank you so much for thinking about supporting this project. It would
+          not be possible without you and your continued support.
+          <i class="fas fa-heart"></i>
+        </div>
+        <div class="buttons">
+          <div class="button ads">
+            <div class="icon"><i class="fas fa-ad"></i></div>
+            <div class="text">Enable Ads</div>
+          </div>
+          <a class="button" href="https://ko-fi.com/monkeytype" target="_blank">
+            <div class="icon"><i class="fas fa-donate"></i></div>
+            <div class="text">Donate</div>
+          </a>
+          <a
+            class="button"
+            href="https://www.patreon.com/monkeytype"
+            target="_blank"
+          >
+            <div class="icon"><i class="fab fa-patreon"></i></div>
+            <div class="text">
+              Become
+              <br />
+              a Patron
+            </div>
+          </a>
+          <a class="button" href="https://monkeytype.store" target="_blank">
+            <div class="icon"><i class="fas fa-tshirt"></i></div>
+            <div class="text">Buy Merch</div>
+          </a>
+        </div>
+      </div>
+    </div>
     <div id="commandLineWrapper" class="hidden">
       <div id="commandLine">
         <input type="text" class="input" placeholder="Type to search" />
@@ -760,10 +901,10 @@
       </div>
     </div>
     <div id="timerWrapper">
-      <div id="timer"></div>
+      <div id="timer" class="timerMain"></div>
     </div>
     <div style="display: flex; justify-content: space-around">
-      <div id="ad2" class="hidden"></div>
+      <div id="nitropay_ad_left" class="hidden"></div>
       <div id="centerContent" class="hidden">
         <div id="top">
           <div class="logo">
@@ -846,7 +987,7 @@
             </div>
           </div>
 
-          <div class="config">
+          <div class="config hidden">
             <div style="display: grid; grid-auto-flow: column">
               <div class="group punctuationMode">
                 <!--           <div class="title">time</div> -->
@@ -873,6 +1014,7 @@
                 </div>
                 <div class="text-button" mode="words" tabindex="2">words</div>
                 <div class="text-button" mode="quote" tabindex="2">quote</div>
+                <div class="text-button" mode="zen" tabindex="2">zen</div>
                 <div class="text-button" mode="custom" tabindex="2">custom</div>
               </div>
             </div>
@@ -918,6 +1060,9 @@
                 <div class="text-button" quoteLength="3" tabindex="2">
                   thicc
                 </div>
+                <div class="text-button" quoteLength="-2" tabindex="2">
+                  <i class="fas fa-search"></i>
+                </div>
               </div>
             </div>
             <div class="group customText hidden">
@@ -937,29 +1082,32 @@
           </div>
         </div>
         <div id="middle">
-          <div class="page pageTest active">
+          <div class="page pageTest hidden">
             <div id="typingTest">
               <div id="capsWarning" class="hidden">
                 <i class="fas fa-lock"></i>
                 Caps Lock
               </div>
+              <div id="memoryTimer">Time left to memorise all words: 0s</div>
               <div id="testModesNotice"></div>
               <div id="caret" class="default size15"></div>
               <div id="paceCaret" class="default size15 hidden"></div>
               <input id="wordsInput" class="" tabindex="0" autocomplete="off" />
-              <div id="timerNumber"><div>60</div></div>
-              <div id="miniTimerAndLiveWpm">
+              <div id="timerNumber" class="timerMain">
+                <div>60</div>
+              </div>
+              <div id="miniTimerAndLiveWpm" class="timerMain size15">
                 <div class="time hidden">1:00</div>
                 <div class="wpm">60</div>
+                <div class="acc">100%</div>
               </div>
               <div class="outOfFocusWarning hidden">
                 <i class="fas fa-mouse-pointer"></i>
-                Click the words to focus
+                Click or press any key to focus
               </div>
               <div id="wordsWrapper">
                 <div id="words" class="size15"></div>
               </div>
-              <div id="liveWpm">123</div>
               <div class="keymap hidden">
                 <div class="row r1">
                   <div></div>
@@ -1134,9 +1282,13 @@
                   </div>
                 </div>
               </div>
+              <div id="largeLiveWpmAndAcc" class="timerMain">
+                <div id="liveWpm" class="hidden">123</div>
+                <div id="liveAcc" class="hidden">100%%</div>
+              </div>
               <div
                 id="restartTestButton"
-                aria-label="Restart test"
+                aria-label="Restart Test"
                 data-balloon-pos="down"
                 class=""
                 tabindex="0"
@@ -1144,6 +1296,20 @@
               >
                 <i class="fas fa-fw fa-redo-alt"></i>
               </div>
+              <div id="monkey" class="hidden">
+                <div class="up"></div>
+                <div class="left hidden"></div>
+                <div class="right hidden"></div>
+                <div class="both hidden"></div>
+                <div class="fast">
+                  <div class="up"></div>
+                  <div class="left hidden"></div>
+                  <div class="right hidden"></div>
+                  <div class="both hidden"></div>
+                </div>
+              </div>
+              <div id="premidTestMode" class="hidden"></div>
+              <div id="premidSecondsLeft" class="hidden"></div>
             </div>
             <div id="result" class="hidden">
               <div class="stats">
@@ -1175,7 +1341,7 @@
                 <div class="group testType">
                   <div class="top">test type</div>
                   <div class="bottom">-</div>
-                  <div class="tags" style="margin-top: 0.5rem">
+                  <div class="tags hidden" style="margin-top: 0.5rem">
                     <div class="top">tags</div>
                     <div class="bottom">-</div>
                   </div>
@@ -1198,7 +1364,7 @@
                   <div class="top">characters</div>
                   <div
                     class="bottom"
-                    aria-label="Correct, incorrect, extra and missed"
+                    aria-label="correct, incorrect, extra, and missed"
                     data-balloon-break=""
                     data-balloon-pos="up"
                   >
@@ -1253,7 +1419,10 @@
                 </div>
                 <div class="words"></div>
               </div>
-              <div class="loginTip">Sign in to save your results</div>
+              <div class="loginTip">
+                <a href="/login" tabindex="9">Sign in</a>
+                to save your results
+              </div>
               <div class="ssWatermark hidden">monkeytype.com</div>
               <div class="buttons">
                 <div
@@ -1267,7 +1436,7 @@
                 </div>
                 <div
                   id="restartTestButtonWithSameWordset"
-                  aria-label="Repeat test"
+                  aria-label="Repeat Test"
                   data-balloon-pos="down"
                   tabindex="0"
                   onclick="this.blur();"
@@ -1305,8 +1474,16 @@
             </div>
           </div>
           <div class="page pageAbout hidden">
+            <div class="created">
+              Created with love by Miodec.
+              <a href="#supporters_title">Supported</a>
+              and
+              <a href="#contributors_title">expanded</a>
+              by many awesome people. Launched on 15th of May, 2020.
+            </div>
             <div class="section">
-              <h1>about</h1>
+              <div class="title">about</div>
+              <!-- <h1>about</h1> -->
               <p>
                 Monkeytype is a minimalistic typing test, featuring many test
                 modes, an account system to save your typing speed history and
@@ -1316,8 +1493,8 @@
             <div class="section">
               <h1>word set</h1>
               <p>
-                By default, the website uses the most common 200 words in the
-                english language to generate its tests. You can change to an
+                By default, this website uses the most common 200 words in the
+                English language to generate its tests. You can change to an
                 expanded set (1000 most common words) in the options, or change
                 the language entirely.
               </p>
@@ -1331,11 +1508,12 @@
                 <key>enter</key>
                 (or just
                 <key>tab</key>
-                if you have quick tab mode enabled) to restart the typing test.
-                Open the command line by pressing
+                if you have
+                <a href="settings">quick tab mode enabled</a>
+                ) to restart the typing test. Open the command line by pressing
                 <key>esc</key>
                 - there you can access all the functionality you need without
-                touching your mouse.
+                touching your mouse
               </p>
             </div>
             <div class="section">
@@ -1359,6 +1537,7 @@
                 raw wpm and mapped onto a scale from 0 to 100.
               </p>
             </div>
+            <div id="nitropay_ad_about" class="hidden"></div>
             <div class="section">
               <h1>results screen</h1>
               <p>
@@ -1375,33 +1554,34 @@
               <h1>bug report or feature request</h1>
               <p>
                 If you encounter a bug, or have a feature request - join the
-                <a href="https://discord.gg/yENzqcB" target="_blank">
-                  Discord server
+                <a href="https://discord.gg/yENzqcB" target="_blank">Discord</a>
+                server, <a href="https://www.reddit.com/users/Miodec" target="_blank">send me a message on Reddit</a> or 
+                <a href="https://github.com/Miodec/monkeytype/issues" target="_blank">
+                 create an issue on GitHub.
                 </a>
-                , send me a message on Reddit or create an issue on
-                <a href="https://github.com/Miodec/monkeytype" target="_blank">
-                  GitHub
-                </a>
-                .
               </p>
             </div>
             <div class="section">
               <h1>support</h1>
               <p>
                 If you wish to support this project, help pay for hosting and
-                fuel my caffeine addiction, you can join the
-                <a href="https://www.patreon.com/monkeytype">Patreon</a>
-                or donate
-                <a href="https://www.paypal.me/jackbartnik">here.</a>
+                fuel my caffeine addiction, you can
+                <a class="aboutEnableAds">enable ads,</a>
+                join the
+                <a href="https://www.patreon.com/monkeytype">Patreon,</a>
+                donate via
+                <a href="https://www.paypal.me/jackbartnik">PayPal</a>
+                or buy a
+                <a href="https://monkeytype.store">tshirt.</a>
               </p>
             </div>
             <div class="section">
-              <h1>credits</h1>
+              <div class="title">credits</div>
               <p>
                 <a href="https://www.reddit.com/user/montydrei" target="_blank">
-                  montydrei
+                  Montydrei
                 </a>
-                - name suggestion
+                for the name suggestion
               </p>
               <p>
                 <a
@@ -1414,17 +1594,23 @@
                 the prototype of this website
               </p>
               <p>
+                <a href="#supporters_title">Supporters</a>
+                who helped financially by donating, enabling optional ads or
+                buying merch
+              </p>
+              <p>
                 <a
                   href="https://github.com/Miodec/monkeytype/graphs/contributors"
+                  target="_blank"
                 >
                   Contributors
                 </a>
                 on GitHub that have helped with implementing various features,
-                adding themes and more.
+                adding themes and more
               </p>
             </div>
             <div class="section">
-              <h1>supporters</h1>
+              <h1 id="supporters_title">supporters</h1>
               <div class="supporters">
                 <div>Not Gate</div>
                 <div>Corey</div>
@@ -1435,8 +1621,8 @@
                 <div>Jackson</div>
                 <div>Nicholas</div>
                 <div>Kenn</div>
-                <div>Kieren</div>
-                <div>Andrew</div>
+                <div>Ennui</div>
+                <div>mweepigeon</div>
                 <div>Stephen</div>
                 <div>Pulsing Penguin</div>
                 <div>Echo</div>
@@ -1460,6 +1646,7 @@
                 <div>squarepy</div>
                 <div>AnalystBot</div>
                 <div>ze_or</div>
+                <div>Richard Blythin</div>
                 <div>Jiangtian Li</div>
                 <div>Dessle</div>
                 <div>Craig</div>
@@ -1471,21 +1658,197 @@
                 <div>Rotoscopic</div>
                 <div>Lawrence</div>
                 <div>Gwen</div>
-                <div>SuperNicii</div>
-                <div>Thomas</div>
+                <div>Nici</div>
+                <div>Thomas Pacheco</div>
                 <div>Gabriel</div>
                 <div>Sebastian</div>
                 <div>Nikolai</div>
                 <div>Sam</div>
                 <div>Ming</div>
+                <div>Draw</div>
+                <div>ESJvR</div>
                 <div>Ven Development</div>
                 <div>Ben</div>
-                <div>Austin</div>
+                <div>Uver</div>
                 <div>poopsey</div>
                 <div>Fruit</div>
                 <div>Robin</div>
                 <div>Sonicv6</div>
                 <div>Taran</div>
+                <div>Roux</div>
+                <div>Artem</div>
+                <div>DarkBlu</div>
+                <div>John</div>
+                <div>Gregory</div>
+                <div>Hopeless Love</div>
+                <div>Kalen</div>
+                <div>Ben</div>
+                <div>Jakub</div>
+                <div>Vincent</div>
+                <div>Connor</div>
+                <div>Zunaed</div>
+                <div>Emilio</div>
+                <div>Michael</div>
+              </div>
+            </div>
+            <div class="section">
+              <h1 id="contributors_title">contributors</h1>
+              <div class="contributors">
+                <div>typerqeo</div>
+                <div>bhomie</div>
+                <div>corey-b</div>
+                <div>UnrealApex</div>
+                <div>willerbee</div>
+                <div>dmartin-tech</div>
+                <div>SeerLite</div>
+                <div>FakeDazon</div>
+                <div>a1usha</div>
+                <div>Brachyurus</div>
+                <div>0x8b</div>
+                <div>seaerchin</div>
+                <div>ryan-harrington</div>
+                <div>Smithster</div>
+                <div>Marco-Pagani</div>
+                <div>CrumblyLiquid</div>
+                <div>Jack92829</div>
+                <div>xZa-k</div>
+                <div>avi123nash</div>
+                <div>bataak</div>
+                <div>Saint-dev</div>
+                <div>ThatOneCalculator</div>
+                <div>mwahlig</div>
+                <div>zachy-ho</div>
+                <div>aviegdown</div>
+                <div>ramnathk</div>
+                <div>GFruit</div>
+                <div>Killer8Hyper</div>
+                <div>MaticSulc</div>
+                <div>joshuamango</div>
+                <div>Ahmad-A0</div>
+                <div>christophersarmiento</div>
+                <div>71xn</div>
+                <div>jacekdobrowolski</div>
+                <div>leduyquang753</div>
+                <div>Maclogger</div>
+                <div>iwa</div>
+                <div>TayIorRobinson</div>
+                <div>vuong-buihv</div>
+                <div>barthakstege</div>
+                <div>l4ssc</div>
+                <div>throwawaywords</div>
+                <div>Jonny-exe</div>
+                <div>OctahedronV2</div>
+                <div>iitsalex</div>
+                <div>RealCyGuy</div>
+                <div>Inirdin</div>
+                <div>jkjrmlg</div>
+                <div>kunal-rp</div>
+                <div>KungPaoChick</div>
+                <div>MakerJake01</div>
+                <div>MysteriousLog6</div>
+                <div>Octarine-Phaneron</div>
+                <div>tawtis</div>
+                <div>Vitaman02</div>
+                <div>BarePotato</div>
+                <div>alegottu</div>
+                <div>s1mple-Lemon</div>
+                <div>Alenygam</div>
+                <div>fuwn</div>
+                <div>minerscale</div>
+                <div>aditya1rawat</div>
+                <div>ammarptn</div>
+                <div>ariebh</div>
+                <div>bsamseth</div>
+                <div>bool3max</div>
+                <div>dCubelic</div>
+                <div>elswenson</div>
+                <div>FabianSt305</div>
+                <div>Fraserbc</div>
+                <div>shinze</div>
+                <div>gkeep</div>
+                <div>JosueLeovani</div>
+                <div>dtuukkanen</div>
+                <div>lucas-fern</div>
+                <div>Magical-Penguin</div>
+                <div>mendelmaleh</div>
+                <div>NoCrypt</div>
+                <div>nullaf</div>
+                <div>chireia</div>
+                <div>sohamb117</div>
+                <div>stevep99</div>
+                <div>mintlodica</div>
+                <div>miyukowo</div>
+                <div>g-harel</div>
+                <div>kiriDevs</div>
+                <div>krsntn</div>
+                <div>baulml</div>
+                <div>ryevertigo</div>
+                <div>Fowl95</div>
+                <div>SoulNinja-dev</div>
+                <div>AfonsoVReis</div>
+                <div>popey456963</div>
+                <div>AlirezaTheBruh</div>
+                <div>anhduck14</div>
+                <div>cBachoo</div>
+                <div>beckxie</div>
+                <div>thescripted</div>
+                <div>CarinaChenot</div>
+                <div>Bregoliii</div>
+                <div>Cosmeeeen</div>
+                <div>danhogan</div>
+                <div>danii</div>
+                <div>David-Mordechai</div>
+                <div>EmNudge</div>
+                <div>kwfk</div>
+                <div>gavinmn</div>
+                <div>GioSDA</div>
+                <div>GuyClicking</div>
+                <div>HayataSama</div>
+                <div>zaxophone</div>
+                <div>Mollerz</div>
+                <div>jeremygautama</div>
+                <div>cincodenada</div>
+                <div>JonesSagabaen</div>
+                <div>kadenscott</div>
+                <div>GMKanat</div>
+                <div>lukew3</div>
+                <div>narze</div>
+                <div>Meimersdorfer</div>
+                <div>mia-cx</div>
+                <div>nikzzzz</div>
+                <div>OldMope</div>
+                <div>Oskar283</div>
+                <div>paulhchoi</div>
+                <div>pserey</div>
+                <div>pjrelex</div>
+                <div>18praneeth</div>
+                <div>RebonackAl</div>
+                <div>rhesamu</div>
+                <div>samyak039</div>
+                <div>sergiathanzo</div>
+                <div>phrohdoh</div>
+                <div>BlueGone</div>
+                <div>tsara27</div>
+                <div>vansul</div>
+                <div>zekth</div>
+                <div>voroskoi</div>
+                <div>andrewtran1995</div>
+                <div>angularorbit</div>
+                <div>aoaaceai</div>
+                <div>bilfri</div>
+                <div>gwenzek</div>
+                <div>iokiou</div>
+                <div>kikuKeii</div>
+                <div>kokaloo</div>
+                <div>nextZed</div>
+                <div>redarguireda</div>
+                <div>sudoerena</div>
+                <div>thuanpham2311</div>
+                <div>Rougemoot</div>
+                <div>wRadion</div>
+                <div>yaazkal</div>
+                <div>zigotica</div>
+                <div>cinoss</div>
               </div>
             </div>
           </div>
@@ -1560,7 +1923,7 @@
                 <div class="buttons">
                   <a
                     class="button"
-                    href="https://discord.com/api/oauth2/authorize?client_id=757704816532258856&redirect_uri=https%3A%2F%2Fmonkeytype.com%2Fverify&response_type=token&scope=identify"
+                    href="https://discord.com/api/oauth2/authorize?client_id=798272335035498557&redirect_uri=https%3A%2F%2Fmonkeytype.com%2Fverify&response_type=token&scope=identify"
                     style="text-decoration: none"
                   >
                     Verify with Discord
@@ -1628,7 +1991,7 @@
                   </div>
                 </div>
               </div>
-              <div class="section quickTab">
+              <div class="section quickTab" id="quickTab">
                 <h1>quick tab mode</h1>
                 <div class="text">
                   Press
@@ -1643,6 +2006,37 @@
                   <div class="button on" tabindex="0" onclick="this.blur();">
                     on
                   </div>
+                </div>
+              </div>
+
+              <div class="section repeatQuotes" id="repeatQuotes">
+                <h1>repeat quotes</h1>
+                <div class="text">
+                  This setting changes the restarting behaviour when typing in
+                  quote mode. Changing it to 'typing' will repeat the quote if
+                  you restart while typing.
+                </div>
+                <!-- , and 'always' will always repeat the quote (you will need to press <key>shift + tab</key> to move on to the next quote). -->
+                <div class="buttons">
+                  <div
+                    class="button"
+                    repeatQuotes="off"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    off
+                  </div>
+                  <div
+                    class="button"
+                    repeatQuotes="typing"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    typing
+                  </div>
+                  <!-- <div class="button" repeatQuotes="always" tabindex="0" onclick="this.blur();">
+                    always
+                  </div> -->
                 </div>
               </div>
 
@@ -1752,17 +2146,58 @@
                   />
                 </div>
               </div>
+              <div class="section minAcc" section="">
+                <h1>min accuracy</h1>
+                <div class="text">
+                  Automatically fails a test if your accuracy falls below a
+                  threshold.
+                </div>
+                <div class="buttons">
+                  <div
+                    class="button"
+                    minAcc="off"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    off
+                  </div>
+                  <div
+                    class="button"
+                    minAcc="custom"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    custom
+                  </div>
+                  <input
+                    type="number"
+                    step="1"
+                    class="customMinAcc"
+                    placeholder="acc"
+                    min="0"
+                    value=""
+                  />
+                </div>
+              </div>
+              <div class="section languageGroups">
+                <h1>language groups</h1>
+                <div class="buttons"></div>
+              </div>
               <div class="section language">
                 <h1>language</h1>
                 <div class="buttons"></div>
               </div>
               <div class="section funbox">
                 <h1>funbox</h1>
+                <div class="text">
+                  These are special modes that change the website in some
+                  special way (by altering the word generation, behaviour of the
+                  website or the looks). Give each one of them a try!
+                </div>
                 <div class="buttons"></div>
               </div>
               <div class="sectionSpacer"></div>
             </div>
-
             <div id="group_input" class="sectionGroupTitle" group="input">
               input
               <i class="fas fa-chevron-down"></i>
@@ -1793,6 +2228,39 @@
                     off
                   </div>
                   <div class="button on" tabindex="0" onclick="this.blur();">
+                    on
+                  </div>
+                </div>
+              </div>
+              <div class="section oppositeShiftMode">
+                <h1>opposite shift mode</h1>
+                <div class="text">
+                  This mode will force you to use opposite
+                  <key>shift</key>
+                  keys for shifting. Using an incorrect one will count as an
+                  error. This feature ignores keys in locations
+                  <key>B</key>
+                  ,
+                  <key>Y</key>
+                  , and
+                  <key>^</key>
+                  because many people use the other hand for those keys.
+                </div>
+                <div class="buttons">
+                  <div
+                    class="button"
+                    oppositeShiftMode="off"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    off
+                  </div>
+                  <div
+                    class="button"
+                    oppositeShiftMode="on"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
                     on
                   </div>
                 </div>
@@ -1939,10 +2407,17 @@
               </div>
               <div class="section layout">
                 <h1>layout override</h1>
+                <div class="text">
+                  With this setting you can emulate other layouts. This setting
+                  is best kept default, as it can break things like dead keys
+                  and alt layers.
+                </div>
                 <div class="buttons"></div>
               </div>
               <div class="sectionSpacer"></div>
             </div>
+
+            <div id="nitropay_ad_settings1" class="hidden"></div>
 
             <div id="group_sound" class="sectionGroupTitle" group="sound">
               sound
@@ -2095,6 +2570,14 @@
                     onclick="this.blur();"
                   >
                     off
+                  </div>
+                  <div
+                    class="button"
+                    paceCaret="average"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    average
                   </div>
                   <div
                     class="button"
@@ -2337,7 +2820,7 @@
               <div class="section showAllLines">
                 <h1>show all lines</h1>
                 <div class="text">
-                  When enabled, the website will show all lines for word,custom
+                  When enabled, the website will show all lines for word, custom
                   and quote mode tests - otherwise the lines will be limited to
                   3, and will automatically scroll. Using this could cause the
                   timer text and live wpm to not be visible.
@@ -2475,6 +2958,35 @@
                   </div>
                 </div>
               </div>
+              <div class="section keymapLegendStyle">
+                <h1>keymap legend style</h1>
+                <div class="buttons">
+                  <div
+                    class="button"
+                    keymapLegendStyle="lowercase"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    lowercase
+                  </div>
+                  <div
+                    class="button"
+                    keymapLegendStyle="uppercase"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    uppercase
+                  </div>
+                  <div
+                    class="button"
+                    keymapLegendStyle="blank"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    blank
+                  </div>
+                </div>
+              </div>
               <div class="section keymapLayout">
                 <h1>keymap layout</h1>
                 <div class="buttons"></div>
@@ -2579,6 +3091,8 @@
               <div class="sectionSpacer"></div>
             </div>
 
+            <div id="nitropay_ad_settings2" class="hidden"></div>
+
             <div id="group_theme" class="sectionGroupTitle" group="theme">
               theme
               <i class="fas fa-chevron-down"></i>
@@ -2649,6 +3163,92 @@
                   </div>
                 </div>
               </div>
+              <div class="section customBackgroundSize">
+                <h1>custom background</h1>
+                <div class="text">
+                  Set an image url to be a custom background image. Cover fits
+                  the image to cover the screen. Contain fits the image to be
+                  fully visible. Max fits the image corner to corner.
+                </div>
+                <div>
+                  <div class="inputAndButton">
+                    <input
+                      type="text"
+                      placeholder="image url"
+                      class="input"
+                      tabindex="0"
+                      onClick="this.select();"
+                    />
+                    <div
+                      class="button save"
+                      tabindex="0"
+                      onclick="this.blur();"
+                    >
+                      <i class="fas fa-save fa-fw"></i>
+                    </div>
+                  </div>
+                  <div class="buttons">
+                    <div
+                      class="button"
+                      customBackgroundSize="cover"
+                      tabindex="0"
+                      onclick="this.blur();"
+                    >
+                      cover
+                    </div>
+                    <div
+                      class="button"
+                      customBackgroundSize="contain"
+                      tabindex="0"
+                      onclick="this.blur();"
+                    >
+                      contain
+                    </div>
+                    <div
+                      class="button"
+                      customBackGroundSize="max"
+                      tabindex="0"
+                      onclick="this.blur();"
+                    >
+                      max
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="section customBackgroundFilter">
+                <h1>custom background filter</h1>
+                <div class="text">
+                  Apply various effects to the custom background.
+                </div>
+                <div class="groups">
+                  <div class="group blur">
+                    <div class="title">blur</div>
+                    <div class="value"></div>
+                    <input type="range" min="0" max="5" value="0" step="0.1" />
+                  </div>
+                  <div class="group brightness">
+                    <div class="title">brightness</div>
+                    <div class="value"></div>
+                    <input type="range" min="0" max="2" value="1" step="0.1" />
+                  </div>
+                  <div class="group saturate">
+                    <div class="title">saturate</div>
+                    <div class="value"></div>
+                    <input type="range" min="0" max="2" value="1" step="0.1" />
+                  </div>
+                  <div class="group opacity">
+                    <div class="title">opacity</div>
+                    <div class="value"></div>
+                    <input type="range" min="0" max="1" value="1" step="0.1" />
+                  </div>
+                  <div class="saveContainer">
+                    <div class="save button" style="grid-column: 3">
+                      <!-- <i class="fas fa-save fa-fw"></i> -->
+                      save
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="section themes">
                 <h1>theme</h1>
                 <div class="tabs">
@@ -2678,27 +3278,27 @@
                     tabContent="custom"
                     class="tabContent section customTheme hidden"
                   >
-                    <label class="text">background</label>
+                    <label class="colorText">background</label>
                     <span class="colorPicker">
                       <label for="--bg-color">#000000</label>
                       <input type="color" value="#000000" id="--bg-color" />
                     </span>
-                    <label class="text">main</label>
+                    <label class="colorText">main</label>
                     <span class="colorPicker">
                       <label for="--main-color">#000000</label>
                       <input type="color" value="#000000" id="--main-color" />
                     </span>
-                    <label class="text">caret</label>
+                    <label class="colorText">caret</label>
                     <span class="colorPicker">
                       <label for="--caret-color">#000000</label>
                       <input type="color" value="#000000" id="--caret-color" />
                     </span>
-                    <label class="text">sub</label>
+                    <label class="colorText">sub</label>
                     <span class="colorPicker">
                       <label for="--sub-color">#000000</label>
                       <input type="color" value="#000000" id="--sub-color" />
                     </span>
-                    <label class="text">text</label>
+                    <label class="colorText">text</label>
                     <span class="colorPicker">
                       <label for="--text-color">#000000</label>
                       <input type="color" value="#000000" id="--text-color" />
@@ -2706,12 +3306,12 @@
 
                     <span class="spacer"></span>
 
-                    <label class="text">error</label>
+                    <label class="colorText">error</label>
                     <span class="colorPicker">
                       <label for="--error-color">#000000</label>
                       <input type="color" value="#000000" id="--error-color" />
                     </span>
-                    <label class="text">extra error</label>
+                    <label class="colorText">extra error</label>
                     <span class="colorPicker">
                       <label for="--error-extra-color">#000000</label>
                       <input
@@ -2723,7 +3323,7 @@
 
                     <p>colorful mode</p>
 
-                    <label class="text">error</label>
+                    <label class="colorText">error</label>
                     <span class="colorPicker">
                       <!-- Change variable names here -->
                       <label for="--colorful-error-color">#000000</label>
@@ -2733,7 +3333,7 @@
                         id="--colorful-error-color"
                       />
                     </span>
-                    <label class="text">extra error</label>
+                    <label class="colorText">extra error</label>
                     <span class="colorPicker">
                       <!-- Change variable names here -->
                       <label for="--colorful-error-extra-color">#000000</label>
@@ -2785,6 +3385,21 @@
                 <h1>live wpm</h1>
                 <div class="text">
                   Displays a live WPM speed during the test. Updates once every
+                  second.
+                </div>
+                <div class="buttons">
+                  <div class="button off" tabindex="0" onclick="this.blur();">
+                    hide
+                  </div>
+                  <div class="button on" tabindex="0" onclick="this.blur();">
+                    show
+                  </div>
+                </div>
+              </div>
+              <div class="section showLiveAcc">
+                <h1>live accuracy</h1>
+                <div class="text">
+                  Displays live accuracy during the test. Updates once every
                   second.
                 </div>
                 <div class="buttons">
@@ -2928,6 +3543,23 @@
                   </div>
                 </div>
               </div>
+              <div class="section resetPersonalBests">
+                <h1>reset personal bests</h1>
+                <div class="text">
+                  Resets all your personal bests (but doesn't delete any tests
+                  from your history). Warning: you can't undo this action!
+                </div>
+                <div class="buttons">
+                  <div
+                    class="button off danger"
+                    id="resetPersonalBestsButton"
+                    tabindex="0"
+                    onclick="this.blur();"
+                  >
+                    reset personal bests
+                  </div>
+                </div>
+              </div>
               <div class="section updateAccountEmail">
                 <h1>update account email</h1>
                 <div class="text">
@@ -2938,7 +3570,7 @@
                     class="button off danger"
                     id="updateAccountEmail"
                     tabindex="0"
-                    onclick="this.blur();simplePopups.updateEmail.show();"
+                    onclick="this.blur();"
                   >
                     update email
                   </div>
@@ -3000,27 +3632,16 @@
                     Remember me
                   </label>
                 </div>
-                <div class="button">
+                <div class="button signIn">
                   <i class="fas fa-sign-in-alt"></i>
                   Sign In
                 </div>
+                <div style="font-size: 0.75rem; text-align: center">or</div>
+                <div class="button signInWithGoogle">
+                  <i class="fab fa-google"></i>
+                  Google Sign In
+                </div>
               </form>
-              <div
-                data-balloon-pos="up"
-                aria-label="The new domain seems to be triggering the Chrome's built in phishing detection.
-
-              Basically, since you used monkey-type a lot, when chrome sees that you've entered the same credentials to a veeeery similar domain, Chrome thinks that monkeytype.com is trying to steal your information for... monkey-type.com, and labels the website as Dangerous. (even though its pointing to the same server..)
-
-              I've tested with family members and friends who don't visit the site as often or at all, and the dangerous popup was not there. Also, Google's Safe Browsing scanner classifies monkeytype.com as safe, so this leads me to believe the 'dangerous' classification is happening locally.
-
-              I've contacted Google to get this sorted out - don't worry, the site is safe."
-                data-balloon-length="xlarge"
-                style="text-align: center; margin-top: 1rem; grid-column: 1/3"
-              >
-                Returning Chrome Users
-                <br />
-                Please read me
-              </div>
             </div>
           </div>
 
@@ -3032,10 +3653,10 @@
               <i class="fas fa-fw fa-spin fa-circle-notch"></i>
             </div>
             <div class="content hidden">
-              <div class="hoverChartWrapper">
-                <canvas id="hoverChart"></canvas>
+              <div class="miniResultChartWrapper">
+                <canvas id="miniResultChart"></canvas>
               </div>
-              <div class="hoverChartBg"></div>
+              <div class="miniResultChartBg"></div>
               <div class="triplegroup">
                 <div class="group globalTestsStarted">
                   <div class="title">tests started</div>
@@ -3134,6 +3755,9 @@
                   </div>
                 </div>
               </div>
+
+              <div id="nitropay_ad_account" class="hidden"></div>
+
               <div class="group topFilters">
                 <!-- <div
                   class="button"
@@ -3172,21 +3796,31 @@
                     <div class="button noFilters">clear filters</div>
                   </div>
                 </div>
+                <div class="buttonsAndTitle" style="grid-column: 1/3">
+                  <div class="title">difficulty</div>
+                  <div class="buttons filterGroup" group="difficulty">
+                    <div class="button" filter="normal">normal</div>
+                    <div class="button" filter="expert">expert</div>
+                    <div class="button" filter="master">master</div>
+                  </div>
+                </div>
                 <div class="buttonsAndTitle">
                   <div class="title">mode</div>
                   <div class="buttons filterGroup" group="mode">
                     <div class="button" filter="words">words</div>
                     <div class="button" filter="time">time</div>
                     <div class="button" filter="quote">quote</div>
+                    <div class="button" filter="zen">zen</div>
                     <div class="button" filter="custom">custom</div>
                   </div>
                 </div>
                 <div class="buttonsAndTitle">
-                  <div class="title">difficulty</div>
-                  <div class="buttons filterGroup" group="difficulty">
-                    <div class="button" filter="normal">normal</div>
-                    <div class="button" filter="expert">expert</div>
-                    <div class="button" filter="master">master</div>
+                  <div class="title">quote length</div>
+                  <div class="buttons filterGroup" group="quoteLength">
+                    <div class="button" filter="short">short</div>
+                    <div class="button" filter="medium">medium</div>
+                    <div class="button" filter="long">long</div>
+                    <div class="button" filter="thicc">thicc</div>
                   </div>
                 </div>
                 <div class="buttonsAndTitle">
@@ -3245,7 +3879,7 @@
               </div> -->
                 <div class="above"></div>
                 <div class="chart" style="height: 400px">
-                  <canvas id="resultHistoryChart"></canvas>
+                  <canvas id="accountHistoryChart"></canvas>
                 </div>
                 <div class="below">
                   <div class="text"></div>
@@ -3263,7 +3897,7 @@
               </div>
               <div class="group dailyActivityChart">
                 <div class="chart" style="height: 200px">
-                  <canvas id="activityChart"></canvas>
+                  <canvas id="accountActivityChart"></canvas>
                 </div>
               </div>
               <div class="triplegroup stats">
@@ -3397,58 +4031,65 @@
           </div>
         </div>
         <div id="bottom">
+          <div id="commandLineMobileButton">
+            <i class="fas fa-terminal"></i>
+          </div>
           <div class="keyTips">
             <key>tab</key>
             and
             <key>enter</key>
-            - restart test
+            - Restart Test
             <br />
             <key>esc</key>
-            - command line
+            - Command Line
           </div>
           <div class="leftright">
             <div class="left">
               <div>
-                <i class="far fa-fw fa-heart"></i>
-                Crafted by Miodec
-              </div>
-              <div>
                 <i class="fas fa-fw fa-code"></i>
-                Contribute on
                 <a href="https://github.com/Miodec/monkeytype" target="_blank">
                   GitHub
                 </a>
               </div>
               <div>
-                <i class="fas fa-fw fa-donate"></i>
-                Support on
-                <a href="https://www.patreon.com/monkeytype">Patreon</a>
-                or
-                <a href="https://www.paypal.me/jackbartnik" target="_blank">
-                  PayPal
+                <i class="fab fa-fw fa-discord"></i>
+                <a
+                  href="https://www.discord.gg/monkeytype"
+                  target="_blank"
+                  class="discordLink"
+                >
+                  Discord
                 </a>
               </div>
               <div>
-                <i class="fab fa-fw fa-discord"></i>
-                Join the
-                <a href="https://www.discord.gg/monkeytype" class="discordLink">
-                  Discord
+                <i class="fab fa-fw fa-twitter"></i>
+                <a href="https://twitter.com/monkeytypegame" target="_blank">
+                  Twitter
                 </a>
-                server
+              </div>
+              <div>
+                <i class="fas fa-fw fa-donate"></i>
+                <span id="supportMeButton">Donate</span>
+              </div>
+              <div>
+                <i class="fas fa-user-shield"></i>
+                <a href="privacy-policy.html" target="_blank">Privacy Policy</a>
               </div>
             </div>
             <div class="right">
               <div>
                 <i class="fas fa-palette"></i>
-                <span class="current-theme">current theme</span>
+                <span
+                  class="current-theme"
+                  aria-label="Shift-click to toggle custom theme"
+                  data-balloon-pos="left"
+                >
+                  serika dark
+                </span>
               </div>
               <div>
                 <i class="fas fa-code-branch"></i>
                 <span class="version">version</span>
-              </div>
-              <div>
-                <i class="fas fa-user-shield"></i>
-                <a href="privacy-policy.html">Privacy Policy</a>
               </div>
               <!-- <div>
                 <i class="fas fa-file"></i>
@@ -3457,18 +4098,24 @@
             </div>
           </div>
         </div>
-        <div
-          id="ad1"
-          class="hidden"
-          style="
-            display: flex;
-            justify-content: center;
-            width: 1px;
-            justify-self: center;
-          "
-        ></div>
+        <div class="footerads">
+          <div
+            id="nitropay_ad_footer"
+            style="display: flex; justify-content: center; justify-self: center"
+          ></div>
+          <div
+            id="nitropay_ad_footer2"
+            class="hidden"
+            style="display: flex; justify-content: center; justify-self: center"
+          ></div>
+          <div
+            id="nitropay_ad_footer3"
+            class="hidden"
+            style="display: flex; justify-content: center; justify-self: center"
+          ></div>
+        </div>
       </div>
-      <div id="ad3" class="hidden"></div>
+      <div id="nitropay_ad_right" class="hidden"></div>
     </div>
   </body>
   <!-- The core Firebase JS SDK is always required and must be listed first -->
@@ -3483,17 +4130,12 @@
 
   <!-- Initialize Firebase -->
   <script src="/__/firebase/init.js"></script>
-  <script
-    src="https://kit.fontawesome.com/f3f87d89b4.js"
-    crossorigin="anonymous"
-  ></script>
   <script src="js/jquery-3.5.1.min.js"></script>
   <script src="js/jquery.color.min.js"></script>
   <script src="js/easing.js"></script>
   <script src="js/jquery.cookie-1.4.1.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/TweenMax.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.3/jquery.gsap.min.js"></script>
   <script src="js/moment.min.js"></script>
   <script src="js/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="js/monkeytype.js"></script>
 </html>

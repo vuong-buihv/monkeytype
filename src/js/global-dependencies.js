@@ -7,12 +7,16 @@ import chartAnnotation from "chartjs-plugin-annotation";
 Chart.plugins.register(chartTrendline);
 Chart.plugins.register(chartAnnotation);
 
-import {
-  db_getSnapshot,
-  db_setSnapshot,
-  db_getUserSnapshot,
-  db_getUserResults,
-  db_getUserHighestWpm,
-  db_getLocalPB,
-  db_saveLocalPB,
-} from "./db";
+import * as DB from "./db";
+import * as Misc from "./misc";
+import * as ResultFilters from "./result-filters";
+import Config from "./config";
+import * as SimplePopups from "./simple-popups";
+import * as AccountController from "./account-controller";
+import "./caps-warning";
+import "./support-popup";
+import "./version-popup";
+import "./custom-theme-popup";
+import "./import-settings-popup";
+import "./input-controller";
+import "./ready";

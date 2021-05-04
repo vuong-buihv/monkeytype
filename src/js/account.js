@@ -1,340 +1,101 @@
-$(".pageLogin .register input").keyup((e) => {
-  if ($(".pageLogin .register .button").hasClass("disabled")) return;
-  if (e.key == "Enter") {
-    signUp();
-  }
-});
+import * as DB from "./db";
+import * as Misc from "./misc";
+import * as CloudFunctions from "./cloud-functions";
+import * as Notifications from "./notifications";
+import * as ResultFilters from "./result-filters";
+import * as ThemeColors from "./theme-colors";
+import * as ChartController from "./chart-controller";
+import Config, * as UpdateConfig from "./config";
+import * as AccountButton from "./account-button";
+import * as TestLogic from "./test-logic";
+import * as PaceCaret from "./pace-caret";
+import * as TagController from "./tag-controller";
+import * as UI from "./ui";
+import * as CommandlineLists from "./commandline-lists";
+import * as MiniResultChart from "./mini-result-chart";
+import * as ResultTagsPopup from "./result-tags-popup";
+import * as Settings from "./settings";
+import * as ThemePicker from "./theme-picker";
+import * as AllTimeStats from "./all-time-stats";
+import * as PbTables from "./pb-tables";
 
-$(".pageLogin .register .button").click((e) => {
-  if ($(".pageLogin .register .button").hasClass("disabled")) return;
-  signUp();
-});
-
-$(".pageLogin .login input").keyup((e) => {
-  if (e.key == "Enter") {
-    configChangedBeforeDb = false;
-    signIn();
-  }
-});
-
-$(".pageLogin .login .button").click((e) => {
-  configChangedBeforeDb = false;
-  signIn();
-});
-
-$(".signOut").click((e) => {
-  signOut();
-});
-
-$(".pageAccount .loadMoreButton").click((e) => {
-  loadMoreLines();
-});
-
-$(".pageLogin #forgotPasswordButton").click((e) => {
-  let email = prompt("Email address");
-  if (email) {
-    firebase
-      .auth()
-      .sendPasswordResetEmail(email)
-      .then(function () {
-        // Email sent.
-        showNotification("Email sent", 2000);
-      })
-      .catch(function (error) {
-        // An error happened.
-        showNotification(error.message, 5000);
-      });
-  }
-});
-
-function showSignOutButton() {
-  $(".signOut").removeClass("hidden").css("opacity", 1);
-}
-
-function hideSignOutButton() {
-  $(".signOut").css("opacity", 0).addClass("hidden");
-}
-
-function signIn() {
-  $(".pageLogin .preloader").removeClass("hidden");
-  let email = $(".pageLogin .login input")[0].value;
-  let password = $(".pageLogin .login input")[1].value;
-
-  if ($(".pageLogin .login #rememberMe input").prop("checked")) {
-    //remember me
-    firebase
-      .auth()
-      .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(function () {
-        return firebase
-          .auth()
-          .signInWithEmailAndPassword(email, password)
-          .then((e) => {
-            changePage("test");
-          })
-          .catch(function (error) {
-            showNotification(error.message, 5000);
-            $(".pageLogin .preloader").addClass("hidden");
-          });
-      });
-  } else {
-    //dont remember
-    firebase
-      .auth()
-      .setPersistence(firebase.auth.Auth.Persistence.SESSION)
-      .then(function () {
-        return firebase
-          .auth()
-          .signInWithEmailAndPassword(email, password)
-          .then((e) => {
-            changePage("test");
-          })
-          .catch(function (error) {
-            showNotification(error.message, 5000);
-            $(".pageLogin .preloader").addClass("hidden");
-          });
-      });
-  }
-}
-
-let dontCheckUserName = false;
-
-function signUp() {
-  $(".pageLogin .register .button").addClass("disabled");
-  $(".pageLogin .preloader").removeClass("hidden");
-  let nname = $(".pageLogin .register input")[0].value;
-  let email = $(".pageLogin .register input")[1].value;
-  let password = $(".pageLogin .register input")[2].value;
-  let passwordVerify = $(".pageLogin .register input")[3].value;
-
-  if (password != passwordVerify) {
-    showNotification("Passwords do not match", 3000);
-    $(".pageLogin .preloader").addClass("hidden");
-    $(".pageLogin .register .button").removeClass("disabled");
-    return;
-  }
-
-  const namecheck = firebase.functions().httpsCallable("checkNameAvailability");
-
-  namecheck({ name: nname }).then((d) => {
-    if (d.data === -1) {
-      showNotification("Name unavailable", 3000);
-      $(".pageLogin .preloader").addClass("hidden");
-      $(".pageLogin .register .button").removeClass("disabled");
-      return;
-    } else if (d.data === -2) {
-      showNotification(
-        "Name cannot contain special characters or contain more than 14 characters. Can include _ . and -",
-        8000
-      );
-      $(".pageLogin .preloader").addClass("hidden");
-      $(".pageLogin .register .button").removeClass("disabled");
-      return;
-    } else if (d.data === 1) {
-      firebase
-        .auth()
-        .createUserWithEmailAndPassword(email, password)
-        .then((user) => {
-          // Account has been created here.
-          dontCheckUserName = true;
-          let usr = user.user;
-          usr
-            .updateProfile({
-              displayName: nname,
-            })
-            .then(async function () {
-              // Update successful.
-              await firebase
-                .firestore()
-                .collection("users")
-                .doc(usr.uid)
-                .set({ name: nname }, { merge: true });
-              reserveName({ name: nname, uid: usr.uid });
-              usr.sendEmailVerification();
-              clearGlobalStats();
-              showNotification("Account created", 2000);
-              $("#menu .icon-button.account .text").text(nname);
-              try {
-                firebase.analytics().logEvent("accountCreated", usr.uid);
-              } catch (e) {
-                console.log("Analytics unavailable");
-              }
-              $(".pageLogin .preloader").addClass("hidden");
-              db_setSnapshot({
-                results: [],
-                personalBests: {},
-                tags: [],
-                globalStats: {
-                  time: undefined,
-                  started: undefined,
-                  completed: undefined,
-                },
-              });
-              if (notSignedInLastResult !== null) {
-                notSignedInLastResult.uid = usr.uid;
-                testCompleted({
-                  uid: usr.uid,
-                  obj: notSignedInLastResult,
-                });
-                db_getSnapshot().results.push(notSignedInLastResult);
-                config.resultFilters = defaultAccountFilters;
-              }
-              changePage("account");
-              usr.sendEmailVerification();
-              $(".pageLogin .register .button").removeClass("disabled");
-            })
-            .catch(function (error) {
-              // An error happened.
-              $(".pageLogin .register .button").removeClass("disabled");
-              console.error(error);
-              usr
-                .delete()
-                .then(function () {
-                  // User deleted.
-                  showNotification(
-                    "An error occured. Account not created.",
-                    2000
-                  );
-                  $(".pageLogin .preloader").addClass("hidden");
-                })
-                .catch(function (error) {
-                  // An error happened.
-                  $(".pageLogin .preloader").addClass("hidden");
-                  console.error(error);
-                });
-            });
-        })
-        .catch(function (error) {
-          // Handle Errors here.
-          $(".pageLogin .register .button").removeClass("disabled");
-          var errorMessage = error.message;
-          showNotification(errorMessage, 5000);
-          $(".pageLogin .preloader").addClass("hidden");
-        });
-    }
-  });
-}
-
-function signOut() {
-  firebase
-    .auth()
-    .signOut()
-    .then(function () {
-      showNotification("Signed out", 2000);
-      clearGlobalStats();
-      hideAccountSettingsSection();
-      updateAccountLoginButton();
-      changePage("login");
-      db_setSnapshot(null);
-    })
-    .catch(function (error) {
-      showNotification(error.message, 5000);
-    });
-}
-
-firebase.auth().onAuthStateChanged(function (user) {
-  if (user) {
-    // User is signed in.
-    $(".pageAccount .content p.accountVerificatinNotice").remove();
-    if (user.emailVerified === false) {
-      $(".pageAccount .content").prepend(
-        `<p class="accountVerificatinNotice" style="text-align:center">Your account is not verified. Click <a onClick="sendVerificationEmail()">here</a> to resend the verification email.`
-      );
-    }
-    updateAccountLoginButton();
-    accountIconLoading(true);
-    getAccountDataAndInit();
-    var displayName = user.displayName;
-    var email = user.email;
-    var emailVerified = user.emailVerified;
-    var photoURL = user.photoURL;
-    var isAnonymous = user.isAnonymous;
-    var uid = user.uid;
-    var providerData = user.providerData;
-    $(".pageLogin .preloader").addClass("hidden");
-    $("#menu .icon-button.account .text").text(displayName);
-
-    showFavouriteThemesAtTheTop();
-
-    let text = "Account created on " + user.metadata.creationTime;
-
-    const date1 = new Date(user.metadata.creationTime);
-    const date2 = new Date();
-    const diffTime = Math.abs(date2 - date1);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    text += ` (${diffDays} days ago)`;
-
-    $(".pageAccount .group.createdDate").text(text);
-
-    if (verifyUserWhenLoggedIn !== null) {
-      showNotification("Verifying", 1000);
-      verifyUserWhenLoggedIn.uid = user.uid;
-      verifyUser(verifyUserWhenLoggedIn).then((data) => {
-        showNotification(data.data.message, 3000);
-        if (data.data.status === 1) {
-          db_getSnapshot().discordId = data.data.did;
-          updateDiscordSettingsSection();
-        }
-      });
-    }
-  }
-  let theme = findGetParameter("customTheme");
-  if (theme !== null) {
-    try {
-      theme = theme.split(",");
-      config.customThemeColors = theme;
-      showNotification("Custom theme applied.", 1000);
-    } catch (e) {
-      showNotification(
-        "Something went wrong. Reverting to default custom colors.",
-        3000
-      );
-      config.customThemeColors = defaultConfig.customThemeColors;
-    }
-    setCustomTheme(true);
-    setCustomThemeInputs();
-    applyCustomThemeColors();
-  }
-});
-
-function getAccountDataAndInit() {
-  db_getUserSnapshot()
-    .then((e) => {
-      if (db_getSnapshot() === null) {
+export function getDataAndInit() {
+  DB.initSnapshot()
+    .then(async (e) => {
+      let snap = DB.getSnapshot();
+      $("#menu .icon-button.account .text").text(snap.name);
+      if (snap === null) {
         throw "Missing db snapshot. Client likely could not connect to the backend.";
       }
-      initPaceCaret(true);
-      if (!configChangedBeforeDb) {
-        if (cookieConfig === null) {
-          accountIconLoading(false);
-          applyConfig(db_getSnapshot().config);
-          updateSettingsPage();
-          saveConfigToCookie(true);
-          restartTest(false, true);
-        } else if (db_getSnapshot().config !== undefined) {
+      let user = firebase.auth().currentUser;
+      if (snap.name === undefined) {
+        //verify username
+        if (Misc.isUsernameValid(user.displayName)) {
+          //valid, just update
+          snap.name = user.displayName;
+          DB.setSnapshot(snap);
+          DB.updateName(user.uid, user.displayName);
+        } else {
+          //invalid, get new
+          // Notifications.add("Invalid name", 0);
+          let promptVal = null;
+          let cdnVal = undefined;
+
+          while (
+            promptVal === null ||
+            cdnVal === undefined ||
+            cdnVal.data.status < 0
+          ) {
+            promptVal = prompt(
+              "Your name is either invalid or unavailable (you also need to do this if you used Google Sign Up). Please provide a new display name (cannot be longer than 14 characters, can only contain letters, numbers, underscores, dots and dashes):"
+            );
+            cdnVal = await CloudFunctions.changeDisplayName({
+              uid: user.uid,
+              name: promptVal,
+            });
+            if (cdnVal.data.status === 1) {
+              alert("Name updated", 1);
+              location.reload();
+            } else if (cdnVal.data.status < 0) {
+              alert(cdnVal.data.message, 0);
+            }
+          }
+        }
+      }
+      if (snap.refactored === false) {
+        CloudFunctions.removeSmallTests({ uid: user.uid });
+      }
+      if (!UpdateConfig.changedBeforeDb) {
+        if (Config.localStorageConfig === null) {
+          AccountButton.loading(false);
+          UpdateConfig.apply(DB.getSnapshot().config);
+          Settings.update();
+          UpdateConfig.saveToLocalStorage(true);
+          TestLogic.restart(false, true);
+        } else if (DB.getSnapshot().config !== undefined) {
+          //loading db config, keep for now
           let configsDifferent = false;
-          Object.keys(config).forEach((key) => {
+          Object.keys(Config).forEach((key) => {
             if (!configsDifferent) {
               try {
                 if (key !== "resultFilters") {
-                  if (Array.isArray(config[key])) {
-                    config[key].forEach((arrval, index) => {
-                      if (arrval != db_getSnapshot().config[key][index]) {
+                  if (Array.isArray(Config[key])) {
+                    Config[key].forEach((arrval, index) => {
+                      if (arrval != DB.getSnapshot().config[key][index]) {
                         configsDifferent = true;
                         console.log(
                           `.config is different: ${arrval} != ${
-                            db_getSnapshot().config[key][index]
+                            DB.getSnapshot().config[key][index]
                           }`
                         );
                       }
                     });
                   } else {
-                    if (config[key] != db_getSnapshot().config[key]) {
+                    if (Config[key] != DB.getSnapshot().config[key]) {
                       configsDifferent = true;
                       console.log(
-                        `..config is different ${key}: ${config[key]} != ${
-                          db_getSnapshot().config[key]
+                        `..config is different ${key}: ${Config[key]} != ${
+                          DB.getSnapshot().config[key]
                         }`
                       );
                     }
@@ -349,1217 +110,48 @@ function getAccountDataAndInit() {
           });
           if (configsDifferent) {
             console.log("applying config from db");
-            accountIconLoading(false);
-            config = db_getSnapshot().config;
-            applyConfig(config);
-            updateSettingsPage();
-            saveConfigToCookie(true);
-            restartTest(false, true);
+            AccountButton.loading(false);
+            UpdateConfig.apply(DB.getSnapshot().config);
+            Settings.update();
+            UpdateConfig.saveToLocalStorage(true);
+            if ($(".page.pageTest").hasClass("active")) {
+              TestLogic.restart(false, true);
+            }
           }
         }
-        dbConfigLoaded = true;
+        UpdateConfig.setDbConfigLoaded(true);
       } else {
-        accountIconLoading(false);
+        AccountButton.loading(false);
       }
-      try {
-        if (
-          config.resultFilters === undefined ||
-          config.resultFilters === null ||
-          config.resultFilters.difficulty === undefined
-        ) {
-          if (
-            db_getSnapshot().config.resultFilters == null ||
-            db_getSnapshot().config.resultFilters.difficulty === undefined
-          ) {
-            config.resultFilters = defaultAccountFilters;
-          } else {
-            config.resultFilters = db_getSnapshot().config.resultFilters;
-          }
+      if (Config.paceCaret === "pb" || Config.paceCaret === "average") {
+        if (!TestLogic.active) {
+          PaceCaret.init(true);
         }
-      } catch (e) {
-        config.resultFilters = defaultAccountFilters;
       }
-      if ($(".pageLogin").hasClass("active")) {
-        changePage("account");
+      if (
+        $(".pageLogin").hasClass("active") ||
+        window.location.pathname === "/account"
+      ) {
+        UI.changePage("account");
       }
-      refreshThemeButtons();
-      accountIconLoading(false);
-      updateFilterTags();
-      updateCommandsTagsList();
-      loadActiveTagsFromCookie();
-      updateResultEditTagsPanelButtons();
-      showAccountSettingsSection();
+      ThemePicker.refreshButtons();
+      AccountButton.loading(false);
+      ResultFilters.updateTags();
+      CommandlineLists.updateTagCommands();
+      TagController.loadActiveFromLocalStorage();
+      ResultTagsPopup.updateButtons();
+      Settings.showAccountSection();
     })
     .catch((e) => {
-      accountIconLoading(false);
+      AccountButton.loading(false);
       console.error(e);
-      showNotification(
-        "Error downloading user data. Refresh to try again. If error persists contact Miodec.",
-        5000
+      Notifications.add(
+        "Error downloading user data. Client likely could not connect to the backend  - refresh to try again. If error persists try clearing your cache and website data or contact Miodec.",
+        -1
       );
       $("#top #menu .account .icon").html('<i class="fas fa-fw fa-times"></i>');
       $("#top #menu .account").css("opacity", 1);
     });
-}
-
-var resultHistoryChart = new Chart($(".pageAccount #resultHistoryChart"), {
-  animationSteps: 60,
-  type: "line",
-  data: {
-    datasets: [
-      {
-        yAxisID: "wpm",
-        label: "wpm",
-        fill: false,
-        data: [],
-        borderColor: "#f44336",
-        borderWidth: 2,
-        trendlineLinear: {
-          style: "rgba(255,105,180, .8)",
-          lineStyle: "dotted",
-          width: 4,
-        },
-      },
-      {
-        yAxisID: "acc",
-        label: "acc",
-        fill: false,
-        data: [],
-        borderColor: "#cccccc",
-        borderWidth: 2,
-      },
-    ],
-  },
-  options: {
-    tooltips: {
-      // Disable the on-canvas tooltip
-      enabled: true,
-      titleFontFamily: "Roboto Mono",
-      bodyFontFamily: "Roboto Mono",
-      intersect: false,
-      custom: function (tooltip) {
-        if (!tooltip) return;
-        // disable displaying the color box;
-        tooltip.displayColors = false;
-      },
-      callbacks: {
-        // HERE YOU CUSTOMIZE THE LABELS
-        title: function () {
-          return;
-        },
-        beforeLabel: function (tooltipItem, data) {
-          let resultData =
-            data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-          if (tooltipItem.datasetIndex !== 0) {
-            return `acc: ${resultData.y}%`;
-          }
-          let label =
-            `${data.datasets[tooltipItem.datasetIndex].label}: ${
-              tooltipItem.yLabel
-            }` +
-            "\n" +
-            `raw: ${resultData.raw}` +
-            "\n" +
-            `acc: ${resultData.acc}` +
-            "\n\n" +
-            `mode: ${resultData.mode} `;
-
-          if (resultData.mode == "time") {
-            label += resultData.mode2;
-          } else if (resultData.mode == "words") {
-            label += resultData.mode2;
-          }
-
-          let diff = resultData.difficulty;
-          if (diff == undefined) {
-            diff = "normal";
-          }
-          label += "\n" + `difficulty: ${diff}`;
-
-          label +=
-            "\n" +
-            `punctuation: ${resultData.punctuation}` +
-            "\n" +
-            `language: ${resultData.language}` +
-            "\n\n" +
-            `date: ${moment(resultData.timestamp).format("DD MMM YYYY HH:mm")}`;
-
-          return label;
-        },
-        label: function (tooltipItem, data) {
-          return;
-        },
-        afterLabel: function (tooltipItem, data) {
-          return;
-        },
-      },
-    },
-    animation: {
-      duration: 250,
-    },
-    legend: {
-      display: false,
-      labels: {
-        fontFamily: "Roboto Mono",
-        fontColor: "#ffffff",
-      },
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    hover: {
-      mode: "nearest",
-      intersect: false,
-    },
-    scales: {
-      xAxes: [
-        {
-          ticks: {
-            fontFamily: "Roboto Mono",
-          },
-          type: "time",
-          bounds: "ticks",
-          distribution: "series",
-          display: false,
-          offset: true,
-          scaleLabel: {
-            display: false,
-            labelString: "Date",
-          },
-        },
-      ],
-      yAxes: [
-        {
-          id: "wpm",
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            min: 0,
-            stepSize: 10,
-          },
-          display: true,
-          scaleLabel: {
-            display: true,
-            labelString: "Words per Minute",
-            fontFamily: "Roboto Mono",
-          },
-        },
-        {
-          id: "acc",
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            max: 100,
-          },
-          display: true,
-          position: "right",
-          scaleLabel: {
-            display: true,
-            labelString: "Accuracy",
-            fontFamily: "Roboto Mono",
-          },
-          gridLines: {
-            display: false,
-          },
-        },
-      ],
-    },
-  },
-});
-
-let activityChart = new Chart($(".pageAccount #activityChart"), {
-  animationSteps: 60,
-  type: "bar",
-  data: {
-    datasets: [
-      {
-        yAxisID: "count",
-        label: "Tests Completed",
-        data: [],
-        trendlineLinear: {
-          style: "rgba(255,105,180, .8)",
-          lineStyle: "dotted",
-          width: 2,
-        },
-        order: 3,
-      },
-      {
-        yAxisID: "avgWpm",
-        label: "Average Wpm",
-        data: [],
-        type: "line",
-        order: 2,
-        lineTension: 0,
-        fill: false,
-      },
-    ],
-  },
-  options: {
-    tooltips: {
-      callbacks: {
-        // HERE YOU CUSTOMIZE THE LABELS
-        title: function (tooltipItem, data) {
-          let resultData =
-            data.datasets[tooltipItem[0].datasetIndex].data[
-              tooltipItem[0].index
-            ];
-          return moment(resultData.x).format("DD MMM YYYY");
-        },
-      },
-    },
-    animation: {
-      duration: 250,
-    },
-    legend: {
-      display: false,
-      labels: {
-        fontFamily: "Roboto Mono",
-        fontColor: "#ffffff",
-      },
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    hover: {
-      mode: "nearest",
-      intersect: false,
-    },
-    scales: {
-      xAxes: [
-        {
-          ticks: {
-            fontFamily: "Roboto Mono",
-            autoSkip: true,
-            autoSkipPadding: 40,
-          },
-          type: "time",
-          time: {
-            unit: "day",
-            displayFormats: {
-              day: "D MMM",
-            },
-          },
-          bounds: "ticks",
-          distribution: "series",
-          display: true,
-          scaleLabel: {
-            display: false,
-            labelString: "Date",
-          },
-          offset: true,
-        },
-      ],
-      yAxes: [
-        {
-          id: "count",
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            min: 0,
-            autoSkip: true,
-            autoSkipPadding: 40,
-            stepSize: 10,
-          },
-          display: true,
-          scaleLabel: {
-            display: true,
-            labelString: "Tests Completed",
-            fontFamily: "Roboto Mono",
-          },
-        },
-        {
-          id: "avgWpm",
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            min: 0,
-            autoSkip: true,
-            autoSkipPadding: 40,
-            stepSize: 10,
-          },
-          display: true,
-          position: "right",
-          scaleLabel: {
-            display: true,
-            labelString: "Average Wpm",
-            fontFamily: "Roboto Mono",
-          },
-          gridLines: {
-            display: false,
-          },
-        },
-      ],
-    },
-  },
-});
-
-let hoverChart = new Chart($(".pageAccount #hoverChart"), {
-  type: "line",
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: "wpm",
-        data: [],
-        borderColor: "rgba(125, 125, 125, 1)",
-        borderWidth: 2,
-        yAxisID: "wpm",
-        order: 2,
-        radius: 2,
-      },
-      {
-        label: "raw",
-        data: [],
-        borderColor: "rgba(125, 125, 125, 1)",
-        borderWidth: 2,
-        yAxisID: "raw",
-        order: 3,
-        radius: 2,
-      },
-      {
-        label: "errors",
-        data: [],
-        borderColor: "rgba(255, 125, 125, 1)",
-        pointBackgroundColor: "rgba(255, 125, 125, 1)",
-        borderWidth: 2,
-        order: 1,
-        yAxisID: "error",
-        maxBarThickness: 10,
-        type: "scatter",
-        pointStyle: "crossRot",
-        radius: function (context) {
-          var index = context.dataIndex;
-          var value = context.dataset.data[index];
-          return value <= 0 ? 0 : 3;
-        },
-        pointHoverRadius: function (context) {
-          var index = context.dataIndex;
-          var value = context.dataset.data[index];
-          return value <= 0 ? 0 : 5;
-        },
-      },
-    ],
-  },
-  options: {
-    tooltips: {
-      titleFontFamily: "Roboto Mono",
-      bodyFontFamily: "Roboto Mono",
-      mode: "index",
-      intersect: false,
-    },
-    legend: {
-      display: false,
-      labels: {
-        defaultFontFamily: "Roboto Mono",
-      },
-    },
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      xAxes: [
-        {
-          ticks: {
-            fontFamily: "Roboto Mono",
-            autoSkip: true,
-            autoSkipPadding: 40,
-          },
-          display: true,
-          scaleLabel: {
-            display: false,
-            labelString: "Seconds",
-            fontFamily: "Roboto Mono",
-          },
-        },
-      ],
-      yAxes: [
-        {
-          id: "wpm",
-          display: true,
-          scaleLabel: {
-            display: true,
-            labelString: "Words per Minute",
-            fontFamily: "Roboto Mono",
-          },
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            min: 0,
-            autoSkip: true,
-            autoSkipPadding: 40,
-          },
-          gridLines: {
-            display: true,
-          },
-        },
-        {
-          id: "raw",
-          display: false,
-          scaleLabel: {
-            display: true,
-            labelString: "Raw Words per Minute",
-            fontFamily: "Roboto Mono",
-          },
-          ticks: {
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            min: 0,
-            autoSkip: true,
-            autoSkipPadding: 40,
-          },
-          gridLines: {
-            display: false,
-          },
-        },
-        {
-          id: "error",
-          display: true,
-          position: "right",
-          scaleLabel: {
-            display: true,
-            labelString: "Errors",
-            fontFamily: "Roboto Mono",
-          },
-          ticks: {
-            precision: 0,
-            fontFamily: "Roboto Mono",
-            beginAtZero: true,
-            autoSkip: true,
-            autoSkipPadding: 40,
-          },
-          gridLines: {
-            display: false,
-          },
-        },
-      ],
-    },
-    annotation: {
-      annotations: [
-        {
-          enabled: false,
-          type: "line",
-          mode: "horizontal",
-          scaleID: "wpm",
-          value: "-30",
-          borderColor: "red",
-          borderWidth: 1,
-          borderDash: [2, 2],
-          label: {
-            // Background color of label, default below
-            backgroundColor: "blue",
-            fontFamily: "Roboto Mono",
-
-            // Font size of text, inherits from global
-            fontSize: 11,
-
-            // Font style of text, default below
-            fontStyle: "normal",
-
-            // Font color of text, default below
-            fontColor: "#fff",
-
-            // Padding of label to add left/right, default below
-            xPadding: 6,
-
-            // Padding of label to add top/bottom, default below
-            yPadding: 6,
-
-            // Radius of label rectangle, default below
-            cornerRadius: 3,
-
-            // Anchor position of label on line, can be one of: top, bottom, left, right, center. Default below.
-            position: "center",
-
-            // Whether the label is enabled and should be displayed
-            enabled: true,
-
-            // Text to display in label - default is null. Provide an array to display values on a new line
-            content: "PB",
-          },
-        },
-      ],
-    },
-  },
-});
-
-function updateHoverChart(filteredId) {
-  let data = filteredResults[filteredId].chartData;
-  let labels = [];
-  for (let i = 1; i <= data.wpm.length; i++) {
-    labels.push(i.toString());
-  }
-  hoverChart.data.labels = labels;
-  hoverChart.data.datasets[0].data = data.wpm;
-  hoverChart.data.datasets[1].data = data.raw;
-  hoverChart.data.datasets[2].data = data.err;
-
-  hoverChart.options.scales.xAxes[0].ticks.minor.fontColor = themeColors.sub;
-  hoverChart.options.scales.xAxes[0].scaleLabel.fontColor = themeColors.sub;
-  hoverChart.options.scales.yAxes[0].ticks.minor.fontColor = themeColors.sub;
-  hoverChart.options.scales.yAxes[2].ticks.minor.fontColor = themeColors.sub;
-  hoverChart.options.scales.yAxes[0].scaleLabel.fontColor = themeColors.sub;
-  hoverChart.options.scales.yAxes[2].scaleLabel.fontColor = themeColors.sub;
-
-  hoverChart.data.datasets[0].borderColor = themeColors.main;
-  hoverChart.data.datasets[0].pointBackgroundColor = themeColors.main;
-  hoverChart.data.datasets[1].borderColor = themeColors.sub;
-  hoverChart.data.datasets[1].pointBackgroundColor = themeColors.sub;
-
-  hoverChart.options.annotation.annotations[0].borderColor = themeColors.sub;
-  hoverChart.options.annotation.annotations[0].label.backgroundColor =
-    themeColors.sub;
-  hoverChart.options.annotation.annotations[0].label.fontColor = themeColors.bg;
-
-  let maxChartVal = Math.max(...[Math.max(...data.wpm), Math.max(...data.raw)]);
-  let minChartVal = Math.min(...[Math.min(...data.wpm), Math.min(...data.raw)]);
-  hoverChart.options.scales.yAxes[0].ticks.max = Math.round(maxChartVal);
-  hoverChart.options.scales.yAxes[1].ticks.max = Math.round(maxChartVal);
-
-  if (!config.startGraphsAtZero) {
-    hoverChart.options.scales.yAxes[0].ticks.min = Math.round(minChartVal);
-    hoverChart.options.scales.yAxes[1].ticks.min = Math.round(minChartVal);
-  } else {
-    hoverChart.options.scales.yAxes[0].ticks.min = 0;
-    hoverChart.options.scales.yAxes[1].ticks.min = 0;
-  }
-
-  hoverChart.update({ duration: 0 });
-}
-
-function showHoverChart() {
-  $(".pageAccount .hoverChartWrapper").stop(true, true).fadeIn(125);
-  $(".pageAccount .hoverChartBg").stop(true, true).fadeIn(125);
-}
-
-function hideHoverChart() {
-  $(".pageAccount .hoverChartWrapper").stop(true, true).fadeOut(125);
-  $(".pageAccount .hoverChartBg").stop(true, true).fadeOut(125);
-}
-
-function updateHoverChartPosition(x, y) {
-  $(".pageAccount .hoverChartWrapper").css({ top: y, left: x });
-}
-
-$(document).on("click", ".pageAccount .hoverChartButton", (event) => {
-  console.log("updating");
-  let filterid = $(event.currentTarget).attr("filteredResultsId");
-  if (filterid === undefined) return;
-  updateHoverChart(filterid);
-  showHoverChart();
-  updateHoverChartPosition(
-    event.pageX - $(".pageAccount .hoverChartWrapper").outerWidth(),
-    event.pageY + 30
-  );
-});
-
-$(document).on("click", ".pageAccount .hoverChartBg", (event) => {
-  hideHoverChart();
-});
-
-let defaultAccountFilters = {
-  difficulty: {
-    normal: true,
-    expert: true,
-    master: true,
-  },
-  mode: {
-    words: true,
-    time: true,
-    quote: true,
-    custom: true,
-  },
-  words: {
-    10: true,
-    25: true,
-    50: true,
-    100: true,
-    200: true,
-    custom: true,
-  },
-  time: {
-    15: true,
-    30: true,
-    60: true,
-    120: true,
-    custom: true,
-  },
-  punctuation: {
-    on: true,
-    off: true,
-  },
-  numbers: {
-    on: true,
-    off: true,
-  },
-  date: {
-    last_day: false,
-    last_week: false,
-    last_month: false,
-    all: true,
-  },
-  tags: {
-    none: true,
-  },
-  language: {},
-  funbox: {
-    none: true,
-  },
-};
-
-getLanguageList().then((languages) => {
-  languages.forEach((language) => {
-    $(
-      ".pageAccount .content .filterButtons .buttonsAndTitle.languages .buttons"
-    ).append(
-      `<div class="button" filter="${language}">${language.replace(
-        "_",
-        " "
-      )}</div>`
-    );
-    defaultAccountFilters.language[language] = true;
-  });
-});
-
-$(
-  ".pageAccount .content .filterButtons .buttonsAndTitle.funbox .buttons"
-).append(`<div class="button" filter="none">none</div>`);
-getFunboxList().then((funboxModes) => {
-  funboxModes.forEach((funbox) => {
-    $(
-      ".pageAccount .content .filterButtons .buttonsAndTitle.funbox .buttons"
-    ).append(
-      `<div class="button" filter="${funbox.name}">${funbox.name.replace(
-        /_/g,
-        " "
-      )}</div>`
-    );
-    defaultAccountFilters.funbox[funbox.name] = true;
-  });
-});
-
-function updateFilterTags() {
-  $(
-    ".pageAccount .content .filterButtons .buttonsAndTitle.tags .buttons"
-  ).empty();
-  if (db_getSnapshot().tags.length > 0) {
-    $(".pageAccount .content .filterButtons .buttonsAndTitle.tags").removeClass(
-      "hidden"
-    );
-    $(
-      ".pageAccount .content .filterButtons .buttonsAndTitle.tags .buttons"
-    ).append(`<div class="button" filter="none">no tag</div>`);
-    db_getSnapshot().tags.forEach((tag) => {
-      defaultAccountFilters.tags[tag.id] = true;
-      $(
-        ".pageAccount .content .filterButtons .buttonsAndTitle.tags .buttons"
-      ).append(`<div class="button" filter="${tag.id}">${tag.name}</div>`);
-    });
-  } else {
-    $(".pageAccount .content .filterButtons .buttonsAndTitle.tags").addClass(
-      "hidden"
-    );
-  }
-}
-
-function toggleFilter(group, filter) {
-  if (group === "date") {
-    Object.keys(config.resultFilters.date).forEach((date) => {
-      setFilter("date", date, false);
-    });
-  }
-  config.resultFilters[group][filter] = !config.resultFilters[group][filter];
-}
-
-function setFilter(group, filter, set) {
-  config.resultFilters[group][filter] = set;
-}
-
-function showActiveFilters() {
-  let aboveChartDisplay = {};
-
-  Object.keys(config.resultFilters).forEach((group) => {
-    aboveChartDisplay[group] = {
-      all: true,
-      array: [],
-    };
-    Object.keys(config.resultFilters[group]).forEach((filter) => {
-      if (config.resultFilters[group][filter]) {
-        aboveChartDisplay[group].array.push(filter);
-      } else {
-        aboveChartDisplay[group].all = false;
-      }
-      let buttonEl;
-      if (group === "date") {
-        buttonEl = $(
-          `.pageAccount .group.topFilters .filterGroup[group="${group}"] .button[filter="${filter}"]`
-        );
-      } else {
-        buttonEl = $(
-          `.pageAccount .group.filterButtons .filterGroup[group="${group}"] .button[filter="${filter}"]`
-        );
-      }
-      if (config.resultFilters[group][filter]) {
-        buttonEl.addClass("active");
-      } else {
-        buttonEl.removeClass("active");
-      }
-    });
-  });
-
-  function addText(group) {
-    let ret = "";
-    ret += "<div class='group'>";
-    if (group == "difficulty") {
-      ret += `<span aria-label="Difficulty" data-balloon-pos="up"><i class="fas fa-fw fa-star"></i>`;
-    } else if (group == "mode") {
-      ret += `<span aria-label="Mode" data-balloon-pos="up"><i class="fas fa-fw fa-bars"></i>`;
-    } else if (group == "punctuation") {
-      ret += `<span aria-label="Punctuation" data-balloon-pos="up"><span class="punc" style="font-weight: 900;
-      width: 1.25rem;
-      text-align: center;
-      display: inline-block;
-      letter-spacing: -.1rem;">!?</span>`;
-    } else if (group == "numbers") {
-      ret += `<span aria-label="Numbers" data-balloon-pos="up"><span class="numbers" style="font-weight: 900;
-        width: 1.25rem;
-        text-align: center;
-        margin-right: .1rem;
-        display: inline-block;
-        letter-spacing: -.1rem;">15</span>`;
-    } else if (group == "words") {
-      ret += `<span aria-label="Words" data-balloon-pos="up"><i class="fas fa-fw fa-font"></i>`;
-    } else if (group == "time") {
-      ret += `<span aria-label="Time" data-balloon-pos="up"><i class="fas fa-fw fa-clock"></i>`;
-    } else if (group == "date") {
-      ret += `<span aria-label="Date" data-balloon-pos="up"><i class="fas fa-fw fa-calendar"></i>`;
-    } else if (group == "tags") {
-      ret += `<span aria-label="Tags" data-balloon-pos="up"><i class="fas fa-fw fa-tags"></i>`;
-    } else if (group == "language") {
-      ret += `<span aria-label="Language" data-balloon-pos="up"><i class="fas fa-fw fa-globe-americas"></i>`;
-    } else if (group == "funbox") {
-      ret += `<span aria-label="Funbox" data-balloon-pos="up"><i class="fas fa-fw fa-gamepad"></i>`;
-    }
-    if (aboveChartDisplay[group].all) {
-      ret += "all";
-    } else {
-      if (group === "tags") {
-        ret += aboveChartDisplay.tags.array
-          .map((id) => {
-            if (id == "none") return id;
-            let name = db_getSnapshot().tags.filter((t) => t.id == id)[0];
-            if (name !== undefined) {
-              return db_getSnapshot().tags.filter((t) => t.id == id)[0].name;
-            }
-          })
-          .join(", ");
-      } else {
-        ret += aboveChartDisplay[group].array.join(", ").replace(/_/g, " ");
-      }
-    }
-    ret += "</span></div>";
-    return ret;
-  }
-
-  let chartString = "";
-
-  //date
-  chartString += addText("date");
-  chartString += `<div class="spacer"></div>`;
-
-  //mode
-  chartString += addText("mode");
-  chartString += `<div class="spacer"></div>`;
-
-  //time
-  if (aboveChartDisplay.mode.array.includes("time")) {
-    chartString += addText("time");
-    chartString += `<div class="spacer"></div>`;
-  }
-
-  //words
-  if (aboveChartDisplay.mode.array.includes("words")) {
-    chartString += addText("words");
-    chartString += `<div class="spacer"></div>`;
-  }
-
-  //diff
-  chartString += addText("difficulty");
-  chartString += `<div class="spacer"></div>`;
-
-  //punc
-  chartString += addText("punctuation");
-  chartString += `<div class="spacer"></div>`;
-
-  //numbers
-  chartString += addText("numbers");
-  chartString += `<div class="spacer"></div>`;
-
-  //language
-  chartString += addText("language");
-  chartString += `<div class="spacer"></div>`;
-
-  //funbox
-  chartString += addText("funbox");
-  chartString += `<div class="spacer"></div>`;
-
-  //tags
-  chartString += addText("tags");
-
-  $(".pageAccount .group.chart .above").html(chartString);
-
-  refreshAccountPage();
-}
-
-function showChartPreloader() {
-  $(".pageAccount .group.chart .preloader").stop(true, true).animate(
-    {
-      opacity: 1,
-    },
-    125
-  );
-}
-
-function hideChartPreloader() {
-  $(".pageAccount .group.chart .preloader").stop(true, true).animate(
-    {
-      opacity: 0,
-    },
-    125
-  );
-}
-
-$(".pageAccount .topFilters .button.allFilters").click((e) => {
-  Object.keys(config.resultFilters).forEach((group) => {
-    Object.keys(config.resultFilters[group]).forEach((filter) => {
-      if (group === "date") {
-        config.resultFilters[group][filter] = false;
-      } else {
-        config.resultFilters[group][filter] = true;
-      }
-    });
-  });
-  config.resultFilters.date.all = true;
-  showActiveFilters();
-  saveConfigToCookie();
-});
-
-$(".pageAccount .topFilters .button.currentConfigFilter").click((e) => {
-  Object.keys(config.resultFilters).forEach((group) => {
-    Object.keys(config.resultFilters[group]).forEach((filter) => {
-      config.resultFilters[group][filter] = false;
-    });
-  });
-
-  config.resultFilters.difficulty[config.difficulty] = true;
-  config.resultFilters.mode[config.mode] = true;
-  if (config.mode === "time") {
-    config.resultFilters.time[config.time] = true;
-  } else if (config.mode === "words") {
-    config.resultFilters.words[config.words] = true;
-  }
-  if (config.punctuation) {
-    config.resultFilters.punctuation.on = true;
-  } else {
-    config.resultFilters.punctuation.off = true;
-  }
-  if (config.numbers) {
-    config.resultFilters.numbers.on = true;
-  } else {
-    config.resultFilters.numbers.off = true;
-  }
-  if (config.mode === "quote" && /english.*/.test(config.language)) {
-    config.resultFilters.language["english"] = true;
-  } else {
-    config.resultFilters.language[config.language] = true;
-  }
-  config.resultFilters.funbox[activeFunBox] = true;
-  config.resultFilters.tags.none = true;
-  db_getSnapshot().tags.forEach((tag) => {
-    if (tag.active === true) {
-      config.resultFilters.tags.none = false;
-      config.resultFilters.tags[tag.id] = true;
-    }
-  });
-
-  config.resultFilters.date.all = true;
-
-  showActiveFilters();
-  saveConfigToCookie();
-});
-
-$(".pageAccount .topFilters .button.toggleAdvancedFilters").click((e) => {
-  $(".pageAccount .filterButtons").slideToggle(250);
-  $(".pageAccount .topFilters .button.toggleAdvancedFilters").toggleClass(
-    "active"
-  );
-});
-
-$(
-  ".pageAccount .filterButtons .buttonsAndTitle .buttons, .pageAccount .group.topFilters .buttonsAndTitle.testDate .buttons"
-).click(".button", (e) => {
-  const filter = $(e.target).attr("filter");
-  const group = $(e.target).parents(".buttons").attr("group");
-  if ($(e.target).hasClass("allFilters")) {
-    Object.keys(config.resultFilters).forEach((group) => {
-      Object.keys(config.resultFilters[group]).forEach((filter) => {
-        if (group === "date") {
-          config.resultFilters[group][filter] = false;
-        } else {
-          config.resultFilters[group][filter] = true;
-        }
-      });
-    });
-    config.resultFilters.date.all = true;
-  } else if ($(e.target).hasClass("noFilters")) {
-    Object.keys(config.resultFilters).forEach((group) => {
-      if (group !== "date") {
-        Object.keys(config.resultFilters[group]).forEach((filter) => {
-          config.resultFilters[group][filter] = false;
-        });
-      }
-    });
-  } else {
-    if (e.shiftKey) {
-      Object.keys(config.resultFilters[group]).forEach((filter) => {
-        config.resultFilters[group][filter] = false;
-      });
-      setFilter(group, filter, true);
-    } else {
-      toggleFilter(group, filter);
-    }
-  }
-  showActiveFilters();
-  saveConfigToCookie();
-});
-
-function fillPbTables() {
-  $(".pageAccount .timePbTable tbody").html(`
-  <tr>
-    <td>15</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>30</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>60</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>120</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  `);
-  $(".pageAccount .wordsPbTable tbody").html(`
-  <tr>
-    <td>10</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>25</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>50</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  <tr>
-    <td>100</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-  </tr>
-  `);
-
-  const pb = db_getSnapshot().personalBests;
-  let pbData;
-  let text;
-
-  text = "";
-  try {
-    pbData = pb.time[15].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>15</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>15</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.time[30].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>30</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>30</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.time[60].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>60</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>60</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.time[120].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>120</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>120</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  $(".pageAccount .timePbTable tbody").html(text);
-
-  text = "";
-  try {
-    pbData = pb.words[10].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>10</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>10</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.words[25].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>25</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>25</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.words[50].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>50</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>50</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  try {
-    pbData = pb.words[100].sort((a, b) => b.wpm - a.wpm)[0];
-    text += `<tr>
-      <td>100</td>
-      <td>${pbData.wpm}</td>
-      <td>${pbData.raw === undefined ? "-" : pbData.raw}</td>
-      <td>${pbData.acc === undefined ? "-" : pbData.acc + "%"}</td>
-      <td>
-      ${pbData.consistency === undefined ? "-" : pbData.consistency + "%"}
-      </td>
-    </tr>`;
-  } catch (e) {
-    text += `<tr>
-      <td>100</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>`;
-  }
-  $(".pageAccount .wordsPbTable tbody").html(text);
 }
 
 let filteredResults = [];
@@ -1619,18 +211,18 @@ function loadMoreLines() {
     }
 
     if (result.chartData === undefined) {
-      icons += `<span class="hoverChartButton" aria-label="No chart data found" data-balloon-pos="up"><i class="fas fa-chart-line"></i></span>`;
+      icons += `<span class="miniResultChartButton" aria-label="No chart data found" data-balloon-pos="up"><i class="fas fa-chart-line"></i></span>`;
     } else if (result.chartData === "toolong") {
-      icons += `<span class="hoverChartButton" aria-label="Chart history is not available for long tests" data-balloon-pos="up"><i class="fas fa-chart-line"></i></span>`;
+      icons += `<span class="miniResultChartButton" aria-label="Chart history is not available for long tests" data-balloon-pos="up"><i class="fas fa-chart-line"></i></span>`;
     } else {
-      icons += `<span class="hoverChartButton" aria-label="View graph" data-balloon-pos="up" filteredResultsId="${i}" style="opacity: 1"><i class="fas fa-chart-line"></i></span>`;
+      icons += `<span class="miniResultChartButton" aria-label="View graph" data-balloon-pos="up" filteredResultsId="${i}" style="opacity: 1"><i class="fas fa-chart-line"></i></span>`;
     }
 
     let tagNames = "";
 
     if (result.tags !== undefined && result.tags.length > 0) {
       result.tags.forEach((tag) => {
-        db_getSnapshot().tags.forEach((snaptag) => {
+        DB.getSnapshot().tags.forEach((snaptag) => {
           if (tag === snaptag.id) {
             tagNames += snaptag.name + ", ";
           }
@@ -1694,43 +286,16 @@ function loadMoreLines() {
   }
 }
 
-function clearGlobalStats() {
-  $(".pageAccount .globalTimeTyping .val").text(`-`);
-  $(".pageAccount .globalTestsStarted .val").text(`-`);
-  $(".pageAccount .globalTestsCompleted .val").text(`-`);
-}
-
-function refreshGlobalStats() {
-  if (db_getSnapshot().globalStats.time != undefined) {
-    let th = Math.floor(db_getSnapshot().globalStats.time / 3600);
-    let tm = Math.floor((db_getSnapshot().globalStats.time % 3600) / 60);
-    let ts = Math.floor((db_getSnapshot().globalStats.time % 3600) % 60);
-    $(".pageAccount .globalTimeTyping .val").text(`
-
-      ${th < 10 ? "0" + th : th}:${tm < 10 ? "0" + tm : tm}:${
-      ts < 10 ? "0" + ts : ts
-    }
-  `);
-  }
-  if (db_getSnapshot().globalStats.started != undefined) {
-    $(".pageAccount .globalTestsStarted .val").text(
-      db_getSnapshot().globalStats.started
-    );
-  }
-  if (db_getSnapshot().globalStats.completed != undefined) {
-    $(".pageAccount .globalTestsCompleted .val").text(
-      db_getSnapshot().globalStats.completed
-    );
-  }
-}
-
 let totalSecondsFiltered = 0;
 
-function refreshAccountPage() {
+export function update() {
   function cont() {
-    refreshThemeColorObject();
-    refreshGlobalStats();
-    fillPbTables();
+    console.log("updating account page");
+    ThemeColors.update();
+    ChartController.accountHistory.updateColors();
+    ChartController.accountActivity.updateColors();
+    AllTimeStats.update();
+    PbTables.update();
 
     let chartData = [];
     let wpmChartData = [];
@@ -1768,7 +333,7 @@ function refreshAccountPage() {
 
     filteredResults = [];
     $(".pageAccount .history table tbody").empty();
-    db_getSnapshot().results.forEach((result) => {
+    DB.getSnapshot().results.forEach((result) => {
       let tt = 0;
       if (result.testDuration == undefined) {
         //test finished before testDuration field was introduced - estimate
@@ -1793,28 +358,46 @@ function refreshAccountPage() {
         if (resdiff == undefined) {
           resdiff = "normal";
         }
-        if (!config.resultFilters.difficulty[resdiff]) return;
-        if (!config.resultFilters.mode[result.mode]) return;
+        if (!ResultFilters.getFilter("difficulty", resdiff)) return;
+        if (!ResultFilters.getFilter("mode", result.mode)) return;
 
         if (result.mode == "time") {
           let timefilter = "custom";
           if ([15, 30, 60, 120].includes(parseInt(result.mode2))) {
             timefilter = result.mode2;
           }
-          if (!config.resultFilters.time[timefilter]) return;
+          if (!ResultFilters.getFilter("time", timefilter)) return;
         } else if (result.mode == "words") {
           let wordfilter = "custom";
           if ([10, 25, 50, 100, 200].includes(parseInt(result.mode2))) {
             wordfilter = result.mode2;
           }
-          if (!config.resultFilters.words[wordfilter]) return;
+          if (!ResultFilters.getFilter("words", wordfilter)) return;
         }
 
-        let langFilter = config.resultFilters.language[result.language];
+        if (result.quoteLength != null) {
+          let filter = null;
+          if (result.quoteLength === 0) {
+            filter = "short";
+          } else if (result.quoteLength === 1) {
+            filter = "medium";
+          } else if (result.quoteLength === 2) {
+            filter = "long";
+          } else if (result.quoteLength === 3) {
+            filter = "thicc";
+          }
+          if (
+            filter !== null &&
+            !ResultFilters.getFilter("quoteLength", filter)
+          )
+            return;
+        }
+
+        let langFilter = ResultFilters.getFilter("language", result.language);
 
         if (
           result.language === "english_expanded" &&
-          config.resultFilters.language.english_1k
+          ResultFilters.getFilter("language", "english_1k")
         ) {
           langFilter = true;
         }
@@ -1824,42 +407,42 @@ function refreshAccountPage() {
         if (result.punctuation) {
           puncfilter = "on";
         }
-        if (!config.resultFilters.punctuation[puncfilter]) return;
+        if (!ResultFilters.getFilter("punctuation", puncfilter)) return;
 
         let numfilter = "off";
         if (result.numbers) {
           numfilter = "on";
         }
-        if (!config.resultFilters.numbers[numfilter]) return;
+        if (!ResultFilters.getFilter("numbers", numfilter)) return;
 
         if (result.funbox === "none" || result.funbox === undefined) {
-          if (!config.resultFilters.funbox.none) return;
+          if (!ResultFilters.getFilter("funbox", "none")) return;
         } else {
-          if (!config.resultFilters.funbox[result.funbox]) return;
+          if (!ResultFilters.getFilter("funbox", result.funbox)) return;
         }
 
         let tagHide = true;
 
         if (result.tags === undefined || result.tags.length === 0) {
           //no tags, show when no tag is enabled
-          if (db_getSnapshot().tags.length > 0) {
-            if (config.resultFilters.tags.none) tagHide = false;
+          if (DB.getSnapshot().tags.length > 0) {
+            if (ResultFilters.getFilter("tags", "none")) tagHide = false;
           } else {
             tagHide = false;
           }
         } else {
           //tags exist
-          let validTags = db_getSnapshot().tags.map((t) => t.id);
+          let validTags = DB.getSnapshot().tags.map((t) => t.id);
           result.tags.forEach((tag) => {
             //check if i even need to check tags anymore
             if (!tagHide) return;
             //check if tag is valid
             if (validTags.includes(tag)) {
               //tag valid, check if filter is on
-              if (config.resultFilters.tags[tag]) tagHide = false;
+              if (ResultFilters.getFilter("tags", tag)) tagHide = false;
             } else {
               //tag not found in valid tags, meaning probably deleted
-              if (config.resultFilters.tags.none) tagHide = false;
+              if (ResultFilters.getFilter("tags", "none")) tagHide = false;
             }
           });
         }
@@ -1871,10 +454,13 @@ function refreshAccountPage() {
         let datehide = true;
 
         if (
-          config.resultFilters.date.all ||
-          (config.resultFilters.date.last_day && timeSinceTest <= 86400) ||
-          (config.resultFilters.date.last_week && timeSinceTest <= 604800) ||
-          (config.resultFilters.date.last_month && timeSinceTest <= 2592000)
+          ResultFilters.getFilter("date", "all") ||
+          (ResultFilters.getFilter("date", "last_day") &&
+            timeSinceTest <= 86400) ||
+          (ResultFilters.getFilter("date", "last_week") &&
+            timeSinceTest <= 604800) ||
+          (ResultFilters.getFilter("date", "last_month") &&
+            timeSinceTest <= 2592000)
         ) {
           datehide = false;
         }
@@ -1883,12 +469,14 @@ function refreshAccountPage() {
 
         filteredResults.push(result);
       } catch (e) {
-        showNotification(
+        Notifications.add(
           "Something went wrong when filtering. Resetting filters.",
-          5000
+          0
         );
-        config.resultFilters = defaultAccountFilters;
-        saveConfigToCookie();
+        console.log(result);
+        console.error(e);
+        ResultFilters.reset();
+        ResultFilters.updateActive();
       }
 
       //filters done
@@ -1903,10 +491,13 @@ function refreshAccountPage() {
 
       if (Object.keys(activityChartData).includes(String(resultDate))) {
         activityChartData[resultDate].amount++;
+        activityChartData[resultDate].time +=
+          result.testDuration + result.incompleteTestSeconds;
         activityChartData[resultDate].totalWpm += result.wpm;
       } else {
         activityChartData[resultDate] = {
           amount: 1,
+          time: result.testDuration + result.incompleteTestSeconds,
           totalWpm: result.wpm,
         };
       }
@@ -1979,7 +570,7 @@ function refreshAccountPage() {
 
       accChartData.push({
         x: result.timestamp,
-        y: result.acc,
+        y: 100 - result.acc,
       });
 
       if (result.wpm > topWpm) {
@@ -2004,6 +595,7 @@ function refreshAccountPage() {
     thisDate = thisDate.getTime();
 
     let activityChartData_amount = [];
+    let activityChartData_time = [];
     let activityChartData_avgWpm = [];
     let lastTimestamp = 0;
     Object.keys(activityChartData).forEach((date) => {
@@ -2036,81 +628,40 @@ function refreshAccountPage() {
         x: parseInt(date),
         y: activityChartData[date].amount,
       });
+      activityChartData_time.push({
+        x: parseInt(date),
+        y: Misc.roundTo2(activityChartData[date].time),
+        amount: activityChartData[date].amount,
+      });
       activityChartData_avgWpm.push({
         x: parseInt(date),
-        y: roundTo2(
+        y: Misc.roundTo2(
           activityChartData[date].totalWpm / activityChartData[date].amount
         ),
       });
       lastTimestamp = date;
     });
 
-    activityChart.options.scales.xAxes[0].ticks.minor.fontColor =
-      themeColors.sub;
-    activityChart.options.scales.yAxes[0].ticks.minor.fontColor =
-      themeColors.sub;
-    activityChart.options.scales.yAxes[0].scaleLabel.fontColor =
-      themeColors.sub;
-    activityChart.data.datasets[0].borderColor = themeColors.main;
-    activityChart.data.datasets[0].backgroundColor = themeColors.main;
+    ChartController.accountActivity.data.datasets[0].data = activityChartData_time;
+    ChartController.accountActivity.data.datasets[1].data = activityChartData_avgWpm;
 
-    activityChart.options.legend.labels.fontColor = themeColors.sub;
-    activityChart.data.datasets[0].trendlineLinear.style = themeColors.sub;
-
-    activityChart.data.datasets[0].data = activityChartData_amount;
-
-    activityChart.options.scales.yAxes[1].ticks.minor.fontColor =
-      themeColors.sub;
-    activityChart.options.scales.yAxes[1].scaleLabel.fontColor =
-      themeColors.sub;
-    activityChart.data.datasets[1].borderColor = themeColors.sub;
-    activityChart.data.datasets[1].data = activityChartData_avgWpm;
-
-    activityChart.options.legend.labels.fontColor = themeColors.sub;
-
-    resultHistoryChart.options.scales.xAxes[0].ticks.minor.fontColor =
-      themeColors.sub;
-    resultHistoryChart.options.scales.yAxes[0].ticks.minor.fontColor =
-      themeColors.sub;
-    resultHistoryChart.options.scales.yAxes[0].scaleLabel.fontColor =
-      themeColors.sub;
-    resultHistoryChart.options.scales.yAxes[1].ticks.minor.fontColor =
-      themeColors.sub;
-    resultHistoryChart.options.scales.yAxes[1].scaleLabel.fontColor =
-      themeColors.sub;
-    resultHistoryChart.data.datasets[0].borderColor = themeColors.main;
-    resultHistoryChart.data.datasets[1].borderColor = themeColors.sub;
-
-    resultHistoryChart.options.legend.labels.fontColor = themeColors.sub;
-    resultHistoryChart.data.datasets[0].trendlineLinear.style = themeColors.sub;
-
-    resultHistoryChart.data.datasets[0].data = chartData;
-    resultHistoryChart.data.datasets[1].data = accChartData;
+    ChartController.accountHistory.data.datasets[0].data = chartData;
+    ChartController.accountHistory.data.datasets[1].data = accChartData;
 
     let wpms = chartData.map((r) => r.y);
     let minWpmChartVal = Math.min(...wpms);
     let maxWpmChartVal = Math.max(...wpms);
 
-    let accuracies = accChartData.map((r) => r.y);
-    let minAccuracyChartVal = Math.min(...accuracies);
-    let maxAccuracyChartVal = Math.max(...accuracies);
-
-    resultHistoryChart.options.scales.yAxes[0].ticks.max =
+    // let accuracies = accChartData.map((r) => r.y);
+    ChartController.accountHistory.options.scales.yAxes[0].ticks.max =
       Math.floor(maxWpmChartVal) + (10 - (Math.floor(maxWpmChartVal) % 10));
-    resultHistoryChart.options.scales.yAxes[1].ticks.max = Math.ceil(
-      maxAccuracyChartVal
-    );
 
-    if (!config.startGraphsAtZero) {
-      resultHistoryChart.options.scales.yAxes[0].ticks.min = Math.floor(
+    if (!Config.startGraphsAtZero) {
+      ChartController.accountHistory.options.scales.yAxes[0].ticks.min = Math.floor(
         minWpmChartVal
       );
-      resultHistoryChart.options.scales.yAxes[1].ticks.min = Math.floor(
-        minAccuracyChartVal
-      );
     } else {
-      resultHistoryChart.options.scales.yAxes[0].ticks.min = 0;
-      resultHistoryChart.options.scales.yAxes[1].ticks.min = 0;
+      ChartController.accountHistory.options.scales.yAxes[0].ticks.min = 0;
     }
 
     if (chartData == [] || chartData.length == 0) {
@@ -2192,21 +743,21 @@ function refreshAccountPage() {
       (testRestarts / testCount).toFixed(1)
     );
 
-    if (resultHistoryChart.data.datasets[0].data.length > 0) {
-      resultHistoryChart.options.plugins.trendlineLinear = true;
+    if (ChartController.accountHistory.data.datasets[0].data.length > 0) {
+      ChartController.accountHistory.options.plugins.trendlineLinear = true;
     } else {
-      resultHistoryChart.options.plugins.trendlineLinear = false;
+      ChartController.accountHistory.options.plugins.trendlineLinear = false;
     }
 
-    if (activityChart.data.datasets[0].data.length > 0) {
-      activityChart.options.plugins.trendlineLinear = true;
+    if (ChartController.accountActivity.data.datasets[0].data.length > 0) {
+      ChartController.accountActivity.options.plugins.trendlineLinear = true;
     } else {
-      activityChart.options.plugins.trendlineLinear = false;
+      ChartController.accountActivity.options.plugins.trendlineLinear = false;
     }
 
     let wpmPoints = filteredResults.map((r) => r.wpm).reverse();
 
-    let trend = findLineByLeastSquares(wpmPoints);
+    let trend = Misc.findLineByLeastSquares(wpmPoints);
 
     let wpmChange = trend[1][1] - trend[0][1];
 
@@ -2216,25 +767,29 @@ function refreshAccountPage() {
 
     $(".pageAccount .group.chart .below .text").text(
       `Speed change per hour spent typing: ${
-        plus + roundTo2(wpmChangePerHour)
+        plus + Misc.roundTo2(wpmChangePerHour)
       } wpm.`
     );
 
-    resultHistoryChart.update({ duration: 0 });
-    activityChart.update({ duration: 0 });
+    ChartController.accountHistory.update({ duration: 0 });
+    ChartController.accountActivity.update({ duration: 0 });
 
-    swapElements($(".pageAccount .preloader"), $(".pageAccount .content"), 250);
+    UI.swapElements(
+      $(".pageAccount .preloader"),
+      $(".pageAccount .content"),
+      250
+    );
   }
-  if (db_getSnapshot() === null) {
-    showNotification(`Missing account data. Please refresh.`, 5000);
+  if (DB.getSnapshot() === null) {
+    Notifications.add(`Missing account data. Please refresh.`, -1);
     $(".pageAccount .preloader").html("Missing account data. Please refresh.");
-  } else if (db_getSnapshot().results === undefined) {
-    db_getUserResults().then((d) => {
+  } else if (DB.getSnapshot().results === undefined) {
+    DB.getUserResults().then((d) => {
       if (d) {
-        showActiveFilters();
+        ResultFilters.updateActive();
       } else {
         setTimeout(() => {
-          changePage("");
+          UI.changePage("");
         }, 500);
       }
     });
@@ -2244,164 +799,31 @@ function refreshAccountPage() {
       cont();
     } catch (e) {
       console.error(e);
-      showNotification(`Something went wrong: ${e}`, 5000);
+      Notifications.add(`Something went wrong: ${e}`, -1);
     }
   }
 }
 
-function showResultEditTagsPanel() {
-  if ($("#resultEditTagsPanelWrapper").hasClass("hidden")) {
-    $("#resultEditTagsPanelWrapper")
-      .stop(true, true)
-      .css("opacity", 0)
-      .removeClass("hidden")
-      .animate({ opacity: 1 }, 125);
-  }
-}
-
-function hideResultEditTagsPanel() {
-  if (!$("#resultEditTagsPanelWrapper").hasClass("hidden")) {
-    $("#resultEditTagsPanelWrapper")
-      .stop(true, true)
-      .css("opacity", 1)
-      .animate(
-        {
-          opacity: 0,
-        },
-        100,
-        (e) => {
-          $("#resultEditTagsPanelWrapper").addClass("hidden");
-        }
-      );
-  }
-}
-
-$(".pageAccount .toggleAccuracyOnChart").click((params) => {
-  toggleChartAccuracy();
+$(".pageAccount .toggleAccuracyOnChart").click((e) => {
+  UpdateConfig.toggleChartAccuracy();
 });
 
-$(".pageAccount .toggleChartStyle").click((params) => {
-  toggleChartStyle();
+$(".pageAccount .toggleChartStyle").click((e) => {
+  UpdateConfig.toggleChartStyle();
 });
 
-$(document).on("click", ".pageAccount .group.history #resultEditTags", (f) => {
-  if (db_getSnapshot().tags.length > 0) {
-    let resultid = $(f.target).parents("span").attr("resultid");
-    let tags = $(f.target).parents("span").attr("tags");
-    $("#resultEditTagsPanel").attr("resultid", resultid);
-    $("#resultEditTagsPanel").attr("tags", tags);
-    updateActiveResultEditTagsPanelButtons(JSON.parse(tags));
-    showResultEditTagsPanel();
-  }
+$(".pageAccount .loadMoreButton").click((e) => {
+  loadMoreLines();
 });
 
-$(document).on("click", "#resultEditTagsPanelWrapper .button.tag", (f) => {
-  $(f.target).toggleClass("active");
+$(document).on("click", ".pageAccount .miniResultChartButton", (event) => {
+  console.log("updating");
+  let filteredId = $(event.currentTarget).attr("filteredResultsId");
+  if (filteredId === undefined) return;
+  MiniResultChart.updateData(filteredResults[filteredId].chartData);
+  MiniResultChart.show();
+  MiniResultChart.updatePosition(
+    event.pageX - $(".pageAccount .miniResultChartWrapper").outerWidth(),
+    event.pageY + 30
+  );
 });
-
-$("#resultEditTagsPanelWrapper").click((e) => {
-  if ($(e.target).attr("id") === "resultEditTagsPanelWrapper") {
-    hideResultEditTagsPanel();
-  }
-});
-
-function updateResultEditTagsPanelButtons() {
-  $("#resultEditTagsPanel .buttons").empty();
-  db_getSnapshot().tags.forEach((tag) => {
-    $("#resultEditTagsPanel .buttons").append(
-      `<div class="button tag" tagid="${tag.id}">${tag.name}</div>`
-    );
-  });
-}
-
-function updateActiveResultEditTagsPanelButtons(active) {
-  if (active === []) return;
-  $.each($("#resultEditTagsPanel .buttons .button"), (index, obj) => {
-    let tagid = $(obj).attr("tagid");
-    if (active.includes(tagid)) {
-      $(obj).addClass("active");
-    } else {
-      $(obj).removeClass("active");
-    }
-  });
-}
-
-$("#resultEditTagsPanel .confirmButton").click((f) => {
-  let resultid = $("#resultEditTagsPanel").attr("resultid");
-  let oldtags = JSON.parse($("#resultEditTagsPanel").attr("tags"));
-
-  let newtags = [];
-  $.each($("#resultEditTagsPanel .buttons .button"), (index, obj) => {
-    let tagid = $(obj).attr("tagid");
-    if ($(obj).hasClass("active")) {
-      newtags.push(tagid);
-    }
-  });
-  showBackgroundLoader();
-  hideResultEditTagsPanel();
-  updateResultTags({
-    uid: firebase.auth().currentUser.uid,
-    tags: newtags,
-    resultid: resultid,
-  }).then((r) => {
-    hideBackgroundLoader();
-    if (r.data.resultCode === 1) {
-      showNotification("Tags updated.", 3000);
-      db_getSnapshot().results.forEach((result) => {
-        if (result.id === resultid) {
-          result.tags = newtags;
-        }
-      });
-
-      let tagNames = "";
-
-      if (newtags.length > 0) {
-        newtags.forEach((tag) => {
-          db_getSnapshot().tags.forEach((snaptag) => {
-            if (tag === snaptag.id) {
-              tagNames += snaptag.name + ", ";
-            }
-          });
-        });
-        tagNames = tagNames.substring(0, tagNames.length - 2);
-      }
-
-      let restags;
-      if (newtags === undefined) {
-        restags = "[]";
-      } else {
-        restags = JSON.stringify(newtags);
-      }
-
-      $(`.pageAccount #resultEditTags[resultid='${resultid}']`).attr(
-        "tags",
-        restags
-      );
-      if (newtags.length > 0) {
-        $(`.pageAccount #resultEditTags[resultid='${resultid}']`).css(
-          "opacity",
-          1
-        );
-        $(`.pageAccount #resultEditTags[resultid='${resultid}']`).attr(
-          "aria-label",
-          tagNames
-        );
-      } else {
-        $(`.pageAccount #resultEditTags[resultid='${resultid}']`).css(
-          "opacity",
-          0.25
-        );
-        $(`.pageAccount #resultEditTags[resultid='${resultid}']`).attr(
-          "aria-label",
-          "no tags"
-        );
-      }
-    } else {
-      showNotification("Error updating tags", 3000);
-    }
-  });
-});
-
-function updateLbMemory(mode, mode2, type, value) {
-  db_getSnapshot().lbMemory[mode + mode2][type] = value;
-}
